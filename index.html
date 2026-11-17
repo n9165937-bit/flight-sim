@@ -538,7 +538,7 @@ const WXS={
  snow:{sky:['#8f99a3','#aeb6be','#cfd4d9'],fog:['#cfd4d9',260,3600],hemi:[0xe2e8f0,0x8a92a0,.86],sun:[0xf0f4f8,.18],cloud:[0xc4cad0,0x5c646c,.95],water:0x34505a,env:['#9aa4ae','#cfd4d9','#9098a4'],lamp:1,precip:'snow',turb:.7},
  fog:{sky:['#bcc3c9','#c8ced3','#d0d5d9'],fog:['#d0d5d9',30,1000],hemi:[0xdde4ea,0x6a7060,.82],sun:[0xf4f4f0,.22],cloud:[0xd0d5d9,0x80868c,.9],water:0x3a5862,env:['#b8c0c6','#d0d5d9','#6a7060'],lamp:1},
  sunset:{sky:['#28386c','#b9667a','#ffae66'],fog:['#e59a6e',1500,10500],hemi:[0xffc8a0,0x463c2c,.6],sun:[0xff9448,1.05],sunDir:[-4200,520,1600],cloud:[0xffc4a0,0x8a4436,.92],water:0x2c4656,env:['#4a4c88','#ffae70','#463c2c'],lamp:1},
- night:{sky:['#01030a','#060d1e','#122036'],fog:['#0e1826',1400,9500],hemi:[0x6078b0,0x0c1018,.36],sun:[0xa8bce8,.16],sunDir:[2400,3600,-1800],cloud:[0x262e3c,0x080c12,.85],water:0x08161f,env:['#080e1c','#16243a','#06080a'],lamp:1,stars:true}
+ night:{sky:['#000003','#01030a','#040a14'],fog:['#03060c',1200,8000],hemi:[0x4a5e90,0x05070a,.11],sun:[0x9fb4e0,.05],sunDir:[2400,3600,-1800],cloud:[0x0c1018,0x020305,.8],water:0x02070b,env:['#010205','#04080f','#010101'],lamp:1,stars:true}
 };
 let WX=WXS.clear;const ENVC={clear:scene.environment};
 function makeEnv(top,hor,gnd,dir,sunCol){const es=new THREE.Scene();const sg=new THREE.SphereGeometry(100,32,16),cols=[],pa=sg.attributes.position;const T=new THREE.Color(top),H=new THREE.Color(hor),G=new THREE.Color(gnd);
@@ -766,7 +766,7 @@ function drawHUD(){const K=CKP,h=K.hud,g=h.g,D=cockpitData(),Wp=h.cv.width,Hp=h.
 let nvgOn=lsGet('skyward_nvg')!=='0',nvgAct=false;
 function nvgAvail(){return MIL[SP.id]&&WX.id==='night'&&camMode===1&&state!=='menu'&&!P.crashed}
 function setNVG(on){if(on===nvgAct)return;nvgAct=on;renderer.domElement.style.filter=on?'grayscale(1) sepia(1) hue-rotate(68deg) saturate(3.2) brightness(1.55) contrast(1.15)':'';
-  $('nvg').classList.toggle('hidden',!on);const W=WX;hemi.intensity=on?W.hemi[2]*3.4:W.hemi[2];sun.intensity=on?W.sun[1]*2.5:W.sun[1];if(on)hemi.color.setHex(0xc8d8ff);else hemi.color.setHex(W.hemi[0])}
+  $('nvg').classList.toggle('hidden',!on);const W=WX;hemi.intensity=on?1.15:W.hemi[2];sun.intensity=on?.35:W.sun[1];if(on)hemi.color.setHex(0xc8d8ff);else hemi.color.setHex(W.hemi[0])}
 function toggleNVG(){if(!nvgAvail()){showMsg('NIGHT VISION','Military aircraft · cockpit view · night only','#9fe0ff',2200);return}nvgOn=!nvgOn;lsSet('skyward_nvg',nvgOn?'1':'0');beep(nvgOn?1200:500,.1,'sine',.05)}
 function updateCockpit(dt){if(!CKP)return;const vis=camMode===1&&!P.crashed&&state!=='menu';CKP.g.visible=vis;document.body.classList.toggle('ckpt',vis);setNVG(vis&&nvgOn&&nvgAvail());
   const nva=!(MIL[SP.id]&&WX.id==='night');for(const n of['bnvg','tnvg'])if($(n))$(n).classList.toggle('hidden',nva);

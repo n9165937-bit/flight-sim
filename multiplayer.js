@@ -43,12 +43,23 @@
   client.on('close', setBadge); client.on('offline', setBadge); client.on('error', setBadge);
 
   // ---- name tag ----
+  function drawTag(s, dist) {
+    const { c, g, name } = s.userData; g.clearRect(0, 0, c.width, c.height);
+    g.font = 'bold 44px Arial'; const w = Math.min(500, g.measureText(name).width + 44);
+    g.fillStyle = 'rgba(4,12,20,.78)'; g.strokeStyle = '#7dffb0'; g.lineWidth = 4;
+    g.beginPath(); g.roundRect ? g.roundRect(256 - w / 2, 6, w, 62, 14) : g.rect(256 - w / 2, 6, w, 62); g.fill(); g.stroke();
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 6; g.strokeStyle = '#000'; g.strokeText(name, 256, 39); g.fillStyle = '#9dffc4'; g.fillText(name, 256, 39);
+    g.font = 'bold 30px Arial'; const dt = dist < 1000 ? Math.round(dist) + ' m' : (dist / 1000).toFixed(1) + ' km';
+    g.strokeStyle = '#000'; g.lineWidth = 5; g.strokeText(dt, 256, 94); g.fillStyle = '#ffffff'; g.fillText(dt, 256, 94);
+    g.fillStyle = '#7dffb0'; g.beginPath(); g.moveTo(256, 140); g.lineTo(240, 116); g.lineTo(272, 116); g.closePath(); g.fill();
+    s.material.map.needsUpdate = true; s.userData.shown = dt;
+  }
   function nameTag(name) {
-    const c = document.createElement('canvas'); c.width = 256; c.height = 64;
-    const g = c.getContext('2d'); g.font = 'bold 34px Arial'; g.textAlign = 'center';
-    g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(8, 10, 240, 46); g.fillStyle = '#7dffb0'; g.fillText(name, 128, 45);
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true }));
-    s.scale.set(14, 3.5, 1); s.renderOrder = 10; return s;
+    const c = document.createElement('canvas'); c.width = 512; c.height = 144;
+    const g = c.getContext('2d');
+    // screen-sized tag: stays readable at any distance, ignores fog and night
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true, fog: false, sizeAttenuation: false }));
+    s.center.set(0.5, 0); s.scale.set(0.62, 0.174, 1); s.renderOrder = 10; s.userData = { c, g, name, t: 0 }; drawTag(s, 0); return s;
   }
   function removeOther(id) { const o = others[id]; if (!o) return; scene.remove(o.model.g); scene.remove(o.tag); delete others[id]; setBadge(); }
 
@@ -103,7 +114,8 @@
       const ahead = o.tPos.clone().addScaledVector(o.tVel, Math.min((now - o.tTime) / 1000, 0.5));
       o.model.g.position.lerp(ahead, 0.25);
       o.model.g.quaternion.slerp(o.tQ, 0.25);
-      o.tag.position.copy(o.model.g.position).y += 7;
+      o.tag.position.copy(o.model.g.position).y += 4;
+      if (now - o.tag.userData.t > 400) { o.tag.userData.t = now; const d = camera.position.distanceTo(o.model.g.position); drawTag(o.tag, d); }
       for (const p of o.model.props) p.rotation.z += 0.7;
       for (const r of (o.model.rotors || [])) r.p.rotation[r.axis] += r.k * 0.016;
       for (const d of (o.model.rdiscs || [])) d.material.opacity = 0.12;
