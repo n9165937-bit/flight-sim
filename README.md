@@ -9,3 +9,7 @@ Open the game, type a pilot name in the menu, and fly. Everyone on the same map 
 
 ## Controls
 W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopters) · F/V flaps · G gear · B brakes · K Cobra (fighters) · C camera · R reset · Esc menu
+
+## Weather & settings
+- Weather: Clear, Overcast, Rain, Snow, Fog, Sunset, Night (runway lights and stars at night). Change it any time from the pause menu.
+- Your aircraft, map, airport, graphics, wind, weather, camera view and sound setting are saved automatically.
