@@ -23,3 +23,9 @@ W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopte
 - Two 400 m twin skyscrapers stand 36 m apart over the main avenue: fly between them.
 - Helicopters can land on three rooftop helipads. Hitting a building is a crash.
 - At night the windows and street lights come on.
+
+## Heli Missions
+- New mode on the menu (picks a helicopter for you if you're in a plane).
+- Rescue: land beside stranded people (on the ground, on mountains, or city rooftops), then fly them to a hospital helipad.
+- Cargo: hover over a crate to hook it on a 14 m rope, carry it (it swings and pulls on your helicopter), and lower it gently into the drop zone.
+- Missions chain one after another; points for speed, best score saved per helicopter and map.

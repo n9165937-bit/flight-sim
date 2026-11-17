@@ -88,7 +88,12 @@ body.ckpt #adi,body.ckpt #map,body.ckpt #ctl{display:none!important}
 .opts{display:flex;gap:16px;flex-wrap:wrap}
 .opts label{font-size:14px;color:#cfe6f7;display:flex;align-items:center;gap:8px}
 select{background:rgba(20,45,70,.8);color:#fff;border:1px solid rgba(160,220,255,.35);border-radius:8px;padding:6px 8px;font:600 14px 'Rajdhani',sans-serif}
-.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.modes{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.mbtn.heli{background:linear-gradient(180deg,rgba(40,120,80,.55),rgba(15,60,40,.55));border-color:rgba(120,255,170,.45)}
+#mission{position:absolute;top:66px;left:50%;transform:translateX(-50%);padding:8px 16px;text-align:center;min-width:340px;max-width:92vw}
+#mission .mt{font:700 12px 'JetBrains Mono',monospace;letter-spacing:2px;color:#9fe0ff}#mission .mo{font:600 17px Rajdhani,sans-serif;color:#fff;margin:2px 0}#mission .mr{font:600 14px 'JetBrains Mono',monospace;color:#3cff8a}
+#mission .ma{display:inline-block;color:#ffd27a}#mission .mi{font:700 14px Rajdhani,sans-serif;color:#ffd27a}
+body.touch #mission{top:44px;min-width:0;padding:4px 10px}body.touch #mission .mo{font-size:13px}body.touch #mission .mr{font-size:11px}
 .mbtn{cursor:pointer;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid rgba(160,220,255,.3);background:linear-gradient(180deg,rgba(40,90,130,.5),rgba(20,45,70,.5));color:#fff;font-family:'Rajdhani',sans-serif;transition:transform .12s,border-color .12s}
 .mbtn:hover{transform:translateY(-2px);border-color:#9fe0ff}
 .mbtn b{display:block;font-size:19px}
@@ -164,6 +169,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
   <div id="warn" class="hidden">STALL</div>
   <div id="msg" style="opacity:0"><div class="t" id="msgt"></div><div class="s" id="msgs"></div></div>
   <div id="ringhud" class="panel hidden"></div>
+  <div id="mission" class="panel hidden"></div>
   <div id="marker" class="hidden"><div class="d"></div><div class="n" id="markn"></div></div>
   <div id="help" class="panel hidden">
     <kbd>W</kbd>/<kbd>S</kbd> pitch · <kbd>A</kbd>/<kbd>D</kbd> roll · <kbd>Q</kbd>/<kbd>E</kbd> rudder<br>
@@ -210,6 +216,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
       <button class="mbtn" data-mode="runway"><b>Takeoff</b><span>Start lined up on the runway</span></button>
       <button class="mbtn" data-mode="air"><b>Free Flight</b><span>Start airborne at cruise</span></button>
       <button class="mbtn" data-mode="rings"><b>Ring Course</b><span>12 gold rings against the clock</span></button>
+      <button class="mbtn heli" data-mode="missions"><b>Heli Missions</b><span>Rescues &amp; cargo lifts</span></button>
     </div>
     <div id="best"></div>
     <details><summary>CONTROLS & TIPS</summary>
@@ -1691,9 +1698,86 @@ function drawILS(){
   papiL.forEach((m,i)=>m.material.color.setHex(ang>th[3-i]?0xffffff:0xff2a2a));
 }
 
+/* ---------------- helicopter missions ---------------- */
+const MIS={on:false,stages:[],si:0,hold:0,t0:0,title:'',kind:'',n:0,score:0,crate:null,next:0,fail:0,grp:null,surv:[],base:null};
+const misPads=()=>airports.filter(a=>a.pad);
+const misSurf=(x,z,y)=>Math.max(groundAt(x,z),0,CITY.on?cityRoofAt(x,z,y-1):-1e9)+1;
+function misFlatSpot(R,minD,maxD,from){
+  for(let k=0;k<4000;k++){const a=R()*Math.PI*2,d=minD+R()*(maxD-minD),x=from.x+Math.cos(a)*d,z=from.z+Math.sin(a)*d;
+    if(Math.abs(x)>4300||Math.abs(z)>4300)continue;const g=groundAt(x,z);if(g<4)continue;if(nearAirport(x,z,80))continue;
+    let ok=true;for(let i=0;i<8&&ok;i++){const q=i/8*Math.PI*2,sx=x+Math.cos(q)*14,sz=z+Math.sin(q)*14;if(Math.abs(groundAt(sx,sz)-g)>1.6||groundAt(sx,sz)<4)ok=false;
+      if(CITY.on&&(cityHit(x+Math.cos(q)*26,z+Math.sin(q)*26,g,g+60)||cityHit(sx,sz,g,g+60)))ok=false}
+    if(ok&&slopeAt(x,z)<.08)return{x,z,y:g,where:'ground'}}
+  return null}
+function misRoofSpot(R,from){const c=CITY.blds.filter(b=>b.w>=26&&b.d>=26&&b.h>40&&b.h<170&&Math.hypot(b.x-from.x,b.z-from.z)>600);if(!c.length)return null;const b=c[Math.floor(R()*c.length)];return{x:b.x,z:b.z,y:CITY.FLAT+b.h,where:'roof'}}
+function misClear(){if(MIS.grp){scene.remove(MIS.grp);MIS.grp=null}MIS.surv=[];if(MIS.crate&&MIS.crate.m){scene.remove(MIS.crate.m);scene.remove(MIS.crate.rope)}MIS.crate=null;MIS.on=false;$('mission').classList.add('hidden')}
+function misBeacon(p,r,col){const G=MIS.grp;
+  const b=new THREE.Mesh(new THREE.CylinderGeometry(r*.35,r*.35,700,20,1,true),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));b.position.set(p.x,p.y+350,p.z);G.add(b);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(r,.5,6,48),new THREE.MeshBasicMaterial({color:col}));ring.rotation.x=Math.PI/2;ring.position.set(p.x,p.y+.6,p.z);G.add(ring);return b}
+function misStart(){misClear();MIS.on=true;MIS.n=0;MIS.score=0;$('mission').classList.remove('hidden');
+  const pads=misPads();MIS.base=pads.reduce((a,b)=>Math.hypot(a.x,a.z)<Math.hypot(b.x,b.z)?a:b);
+  placeOnRunway(MIS.base,1);P.throttle=0;P.spool=0;P.onGround=true;P.rpm=.6;misNext()}
+function misNext(){if(MIS.grp)scene.remove(MIS.grp);MIS.grp=new THREE.Group();scene.add(MIS.grp);MIS.surv=[];
+  if(MIS.crate){scene.remove(MIS.crate.m);scene.remove(MIS.crate.rope);MIS.crate=null}
+  const R=mulberry(Math.floor(Math.random()*1e9)),here={x:P.pos.x,z:P.pos.z},pads=misPads();MIS.n++;MIS.si=0;MIS.hold=0;MIS.t0=performance.now();MIS.fail=0;
+  const far=pads.filter(p=>Math.hypot(p.x-here.x,p.z-here.z)>400),pad=(far.length?far:pads)[Math.floor(R()*(far.length||pads.length))],padP=new V3(pad.x,pad.e,pad.z);
+  const cargo=R()<.45;
+  if(!cargo){let s=CITY.on&&R()<.45?misRoofSpot(R,here):null;if(!s)s=misFlatSpot(R,900,3200,here)||misFlatSpot(R,300,4200,{x:0,z:0})||{x:pad.x+25,z:pad.z+25,y:groundAt(pad.x+25,pad.z+25),where:'ground'};
+    const who=s.where==='roof'?['Rooftop rescue','Workers trapped on a rooftop']:MAP==='alpine'?['Mountain rescue','Injured climbers on the slope']:MAP==='canyon'?['Canyon rescue','Hikers stranded in the canyon']:['Rescue','Stranded hikers need a lift'];
+    MIS.kind='rescue';MIS.title=who[0];const p=new V3(s.x,s.y,s.z);
+    MIS.stages=[{k:'land',p,r:s.where==='roof'?12:22,hold:3,txt:who[1]+' — land beside them',ok:'Survivors aboard!'},{k:'land',p:padP,r:14,hold:2,txt:'Fly them to the hospital pad at '+pad.name,ok:'Delivered to hospital'}];
+    // survivors in orange vests, waving
+    for(let i=0;i<3;i++){const g=new THREE.Group(),vest=new THREE.MeshLambertMaterial({color:0xff7a1a});const a=i*2.1,rr=s.where==='roof'?8:12;g.position.set(s.x+Math.cos(a)*rr,s.y,s.z+Math.sin(a)*rr);
+      const body=new THREE.Mesh(new THREE.CylinderGeometry(.32,.3,1.2,8),vest);body.position.y=1;g.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.22,8,6),new THREE.MeshLambertMaterial({color:0xe0b08a}));head.position.y=1.82;g.add(head);
+      const arm=new THREE.Mesh(new THREE.BoxGeometry(.12,.75,.12),vest);arm.position.set(.36,1.75,0);g.add(arm);g.userData.arm=arm;MIS.grp.add(g);MIS.surv.push(g)}
+    misBeacon(p,MIS.stages[0].r,0x3cff8a)}
+  else{const src=R()<.5?pad:null;let a=src?(pad.roof?{x:pad.x+11,z:pad.z+11,y:pad.e}:{x:pad.x+18,z:pad.z+18,y:groundAt(pad.x+18,pad.z+18)}):misFlatSpot(R,700,2600,here);if(!a)a=misFlatSpot(R,300,4200,{x:0,z:0});
+    let b=misFlatSpot(R,1300,3400,a)||misFlatSpot(R,500,4200,{x:0,z:0})||{x:pad.x-30,z:pad.z-30,y:groundAt(pad.x-30,pad.z-30)};
+    const what=['Supply crate','Generator','Bridge girder','Water tank','Hay bales','Fuel pallet'][Math.floor(R()*6)];
+    MIS.kind='cargo';MIS.title='Cargo lift — '+what;const pA=new V3(a.x,a.y,a.z),pB=new V3(b.x,b.y,b.z);
+    MIS.stages=[{k:'hook',p:pA,r:10,txt:'Hover 6–20 m over the '+what.toLowerCase()+' to hook it'},{k:'drop',p:pB,r:22,txt:'Lower it gently into the marked zone',ok:'Load delivered!'}];
+    const m=new THREE.Mesh(new THREE.BoxGeometry(2.6,2,2.6),new THREE.MeshLambertMaterial({color:0xb5862f}));m.castShadow=true;m.position.set(pA.x,pA.y+1,pA.z);scene.add(m);
+    const st=new THREE.Mesh(new THREE.BoxGeometry(2.7,.2,2.7),new THREE.MeshLambertMaterial({color:0x6b4a1a}));st.position.y=.9;m.add(st);
+    const rope=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new V3(),new V3()]),new THREE.LineBasicMaterial({color:0x222222}));rope.visible=false;rope.frustumCulled=false;scene.add(rope);
+    MIS.crate={m,rope,pos:m.position.clone(),vel:new V3(),on:false,mass:SP.mass*.22,L:14};misBeacon(pA,10,0xffb43c)}
+  showMsg('MISSION '+MIS.n,MIS.title,'#9fe0ff',3500)}
+function misDone(){const t=(performance.now()-MIS.t0)/1000,pts=Math.max(100,Math.round(1500-t*4));MIS.score+=pts;
+  const key='skyward_mis_'+SP.id+'_'+MAP,best=+lsGet(key)||0;if(MIS.score>best)lsSet(key,MIS.score);
+  showMsg('MISSION COMPLETE','+'+pts+' pts · '+t.toFixed(0)+' s · total '+MIS.score+(MIS.score>best?' · NEW BEST':' · best '+best),'#3cff8a',5000);beep(880,.15,'triangle',.2);setTimeout(()=>beep(1320,.2,'triangle',.2),120);
+  MIS.si=99;MIS.next=5}
+function misFailCargo(why){if(MIS.fail)return;MIS.fail=1;showMsg('CARGO LOST',why+' — new job in a moment','#ff6a5a',4000);beep(220,.4,'sawtooth',.15);MIS.si=99;MIS.next=4}
+function updateMission(dt){if(!MIS.on||P.crashed)return;
+  for(const g of MIS.surv)g.userData.arm.rotation.z=Math.sin(performance.now()/180+g.position.x)*.6;
+  if(MIS.si>=99){MIS.next-=dt;if(MIS.next<=0)misNext();return}
+  const S=MIS.stages[MIS.si],d2=Math.hypot(P.pos.x-S.p.x,P.pos.z-S.p.z),C=MIS.crate;axes();
+  // slung load physics
+  if(C&&C.on){const H=_tmp.copy(P.pos).addScaledVector(_u,-1.3),n=4,h=dt/n,mh=SP.mass;
+    for(let i=0;i<n;i++){C.vel.y-=9.81*h;C.vel.multiplyScalar(1-.25*h);C.pos.addScaledVector(C.vel,h);
+      const dv=C.pos.clone().sub(H),L=dv.length();if(L>C.L){dv.multiplyScalar(1/L);C.pos.copy(H).addScaledVector(dv,C.L);const vr=C.vel.clone().sub(P.vel).dot(dv);
+        if(vr>0){const f=vr/(mh+C.mass);C.vel.addScaledVector(dv,-vr*mh/(mh+C.mass));P.vel.addScaledVector(dv,f*C.mass)}}
+      const g=misSurf(C.pos.x,C.pos.z,C.pos.y);if(C.pos.y<g){if(C.vel.y<-9)return misFailCargo('Dropped it too hard');C.pos.y=g;C.vel.y=Math.max(0,C.vel.y);C.vel.x*=.8;C.vel.z*=.8}
+      if(CITY.on&&cityHit(C.pos.x,C.pos.z,C.pos.y-1,C.pos.y+1))return misFailCargo('Smashed it into a building')}
+    C.m.position.copy(C.pos);C.m.rotation.y+=(Math.atan2(_f.x,_f.z)-C.m.rotation.y)*dt;const rp=C.rope.geometry.attributes.position;rp.setXYZ(0,H.x,H.y,H.z);rp.setXYZ(1,C.pos.x,C.pos.y+1,C.pos.z);rp.needsUpdate=true}
+  let info='';
+  if(S.k==='land'){const ok=P.onGround&&d2<S.r&&P.vel.length()<1.5;MIS.hold=ok?MIS.hold+dt:0;if(ok)info=`Loading… ${Math.max(0,S.hold-MIS.hold).toFixed(1)} s`;
+    if(MIS.hold>=S.hold){if(MIS.si===0)for(const g of MIS.surv)g.visible=false;MIS.hold=0;MIS.si++;beep(990,.1,'triangle',.18);
+      if(MIS.si>=MIS.stages.length)return misDone();showMsg(S.ok,MIS.stages[MIS.si].txt,'#3cff8a',3500);misRetarget()}}
+  else if(S.k==='hook'){const above=P.pos.y-C.pos.y,hs=Math.hypot(P.vel.x,P.vel.z),ok=Math.hypot(P.pos.x-C.pos.x,P.pos.z-C.pos.z)<8&&above>6&&above<22&&hs<4&&!P.onGround;
+    MIS.hold=ok?MIS.hold+dt:0;info=ok?'Hooking… hold steady':above<=6&&d2<12?'Too low — climb a little':'';
+    if(MIS.hold>1){C.on=true;C.rope.visible=true;C.vel.set(0,0,0);MIS.hold=0;MIS.si++;beep(660,.12,'square',.12);showMsg('HOOKED',MIS.stages[1].txt,'#ffb43c',3500);misRetarget()}}
+  else if(S.k==='drop'){const cd=Math.hypot(C.pos.x-S.p.x,C.pos.z-S.p.z),g=misSurf(C.pos.x,C.pos.z,C.pos.y),rest=C.pos.y<g+.05&&C.vel.length()<1.5;
+    const ok=cd<S.r&&rest;MIS.hold=ok?MIS.hold+dt:0;if(cd<S.r&&!rest)info='Lower it down…';if(ok)info='Releasing…';
+    if(MIS.hold>1){C.on=false;C.rope.visible=false;return misDone()}}
+  // HUD
+  const tgt=S.k==='drop'?S.p:S.k==='hook'?C.pos:S.p,brg=Math.atan2(tgt.x-P.pos.x,-(tgt.z-P.pos.z)),hd=Math.atan2(_f.x,-_f.z),rel=brg-hd,dist=Math.hypot(tgt.x-P.pos.x,tgt.z-P.pos.z);
+  const t=(performance.now()-MIS.t0)/1000;
+  $('mission').innerHTML=`<div class="mt">MISSION ${MIS.n} · ${MIS.title.toUpperCase()}</div><div class="mo">${S.txt}</div><div class="mr"><span class="ma" style="transform:rotate(${rel}rad)">▲</span> ${dist<1000?Math.round(dist)+' m':(dist/1000).toFixed(1)+' km'} · ${Math.round(tgt.y*3.281)} ft · ${t.toFixed(0)} s · ${MIS.score} pts</div>${info?`<div class="mi">${info}</div>`:''}`}
+function misRetarget(){const S=MIS.stages[MIS.si];if(!S)return;if(MIS.grp){for(const c of[...MIS.grp.children])if(!MIS.surv.includes(c))MIS.grp.remove(c)}misBeacon(S.p,S.r,S.k==='drop'?0xffb43c:0x3cff8a)}
+
 /* ---------------- modes ---------------- */
 let state='menu',mode='runway',camMode=lsGet('skyward_cam')==='1'?1:0,camSaved=camMode;const camPos=new V3();
 function startMode(m){
+  if(m==='missions'&&!SP.heli)selectPlane('bell407');misClear();
   mode=m;clearParts();P.crashed=false;P.w.set(0,0,0);P.flaps=0;P.airTime=0;P.gear=P.gearT=1;P.cobra=null;P.flapT=0;trails.forEach(t=>t.pts.length=0);IN.pitch=IN.roll=IN.yaw=0;hideMsg();
   if(ringGroup){scene.remove(ringGroup);ringGroup=null;rings=[]}
   papi.visible=false;$('result').classList.add('hidden');$('ilsw').classList.add('hidden');LAND.done=true;
@@ -1701,6 +1785,7 @@ function startMode(m){
   if(m==='runway'){const a=aptPick(false);WIND.prefer=Math.random()*360;const e=endPick(a);setWind(wk,e.hdg);WIND.prefer=null;
     placeOnRunway(a,e.s);P.throttle=0;P.spool=0;P.onGround=true;P.rpm=.2;if(SP.jet)P.flaps=P.flapT=1;}
   else if(m==='landing'){startLanding(false);$('ilsw').classList.remove('hidden');}
+  else if(m==='missions'){setWind(wk);misStart();}
   else if(MAP==='canyon'||MAP==='alpine'){setWind(wk);const PT=MAP==='canyon'?CANYON:ALP,x0=-4650,sl=PT.dz(x0),nn=Math.hypot(1,sl),dx=1/nn,dz=sl/nn,hd=Math.atan2(dx,-dz);
     P.pos.set(x0,Math.max(groundAt(x0,PT.zc(x0))+(MAP==='canyon'?190:260),200),PT.zc(x0));P.q.setFromEuler(new THREE.Euler(0,-hd,0,'YXZ'));const v0=Math.min(SP.cruise*.95,SP.fighter?150:SP.cruise);P.vel.set(dx*v0,0,dz*v0);
     P.throttle=.7;P.spool=SP.ab?.49:.7;if(SP.retract)P.gear=P.gearT=0;P.onGround=false;P.rpm=.75;P.airTime=10;
@@ -1850,6 +1935,7 @@ function drawMap(){const g=mapc;g.clearRect(0,0,190,190);g.drawImage(mapImg,0,0)
   if(mode==='rings')rings.forEach((r,i)=>{if(r.done)return;const[mx,mz]=toMap(r.c.x,r.c.z);g.fillStyle=i===ringIdx?'#ffd23a':'rgba(127,216,255,.8)';g.beginPath();g.arc(mx,mz,i===ringIdx?3.5:2.2,0,7);g.fill()});
   if(mode==='landing'&&LAND.apt){const a=LAND.apt,e=LAND.end;const[x0,z0]=aptWorld(a,0,e.aimLz),[x1,z1]=aptWorld(a,0,e.aimLz+e.s*4000);const p0=toMap(x0,z0),p1=toMap(x1,z1);
     g.strokeStyle='rgba(255,79,216,.8)';g.setLineDash([4,3]);g.lineWidth=1.5;g.beginPath();g.moveTo(...p0);g.lineTo(...p1);g.stroke();g.setLineDash([])}
+  if(MIS.on&&MIS.stages[MIS.si]){const S=MIS.stages[MIS.si],q=S.k==='hook'&&MIS.crate?MIS.crate.pos:S.p,[mx,mz]=toMap(q.x,q.z),pul=3+Math.sin(performance.now()/200)*1.2;g.fillStyle=S.k==='land'?'#3cff8a':'#ffb43c';g.strokeStyle='#000';g.lineWidth=1;g.beginPath();g.arc(mx,mz,pul,0,7);g.fill();g.stroke()}
   axes();const h=Math.atan2(_f.x,-_f.z);const[px,pz]=toMap(P.pos.x,P.pos.z);
   g.save();g.translate(px,pz);g.rotate(h);g.fillStyle='#ff3b3b';g.strokeStyle='#fff';g.lineWidth=1;g.beginPath();g.moveTo(0,-7);g.lineTo(5,5);g.lineTo(0,2.5);g.lineTo(-5,5);g.closePath();g.fill();g.stroke();g.restore();}
 function drawADI(pitch,bank){const g=adi;g.clearRect(0,0,150,150);g.save();g.beginPath();g.arc(75,75,72,0,7);g.clip();
@@ -2018,7 +2104,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last
       else if(dtEma<1/57&&GFX.pr<GFX.max){GFX.pr=Math.min(GFX.max,GFX.pr+.1);renderer.setPixelRatio(GFX.pr)}
       else if(dtEma>1/40&&GFX.pr<=GFX.min&&sun.castShadow)sun.castShadow=false}}
   pollInput(dt);
-  if(state==='play'){updateWind(now);prevPos.copy(P.pos);acc+=dt;let n=0;while(acc>=STEP&&n<8){step(STEP);acc-=STEP;n++}if(n===8)acc=0;checkRings();landCheck(dt);}
+  if(state==='play'){updateWind(now);prevPos.copy(P.pos);acc+=dt;let n=0;while(acc>=STEP&&n<8){step(STEP);acc-=STEP;n++}if(n===8)acc=0;checkRings();landCheck(dt);updateMission(dt);}
   updateVisuals(state==='paused'?0:dt);updateCamera(dt,now);updateCockpit(dt);updatePrecip(state==='paused'?0:dt);
   if(state==='play'){hudAcc+=dt;if(hudAcc>=1/30){updateHUD(hudAcc);hudAcc=0}}
   if(camMode!==camSaved){camSaved=camMode;lsSet('skyward_cam',String(camMode))}
