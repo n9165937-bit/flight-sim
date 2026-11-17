@@ -105,6 +105,8 @@
       o.model.g.quaternion.slerp(o.tQ, 0.25);
       o.tag.position.copy(o.model.g.position).y += 7;
       for (const p of o.model.props) p.rotation.z += 0.7;
+      for (const r of (o.model.rotors || [])) r.p.rotation[r.axis] += r.k * 0.016;
+      for (const d of (o.model.rdiscs || [])) d.material.opacity = 0.12;
       for (const m of o.model.gearParts) m.visible = !!o.gear;
       for (const f of o.model.flames) { f.visible = o.ab > .05; f.scale.set(1, 1, .35 + o.ab * 1.3); }
     }
