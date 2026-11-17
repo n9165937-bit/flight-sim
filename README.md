@@ -13,3 +13,7 @@ W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopte
 ## Weather & settings
 - Weather: Clear, Overcast, Rain, Snow, Fog, Sunset, Night (runway lights and stars at night). Change it any time from the pause menu.
 - Your aircraft, map, airport, graphics, wind, weather, camera view and sound setting are saved automatically.
+
+## Cockpits & night vision
+- Every aircraft has a 3D cockpit (press C): live gauges or glass displays, moving stick/yoke and throttle, and a working HUD in the fighters.
+- Military aircraft (F-16, F/A-18, F-22, Black Hawk, Apache, Chinook) get night vision in cockpit view at night. Toggle with N.
