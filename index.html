@@ -1056,7 +1056,7 @@ function stepHeli(dt){
   const hs=Math.hypot(_air.x,_air.z),gh=Math.max(groundAt(P.pos.x,P.pos.z),0),agl=P.pos.y-GEAR-gh;
   const etl=1+.14*smooth(5,18,hs)*(1-.6*smooth(45,85,hs)),ige=1+.12*(1-smooth(0,SP.span*.6,agl)),rot=clamp((P.rpm-.3)/.6,0,1);
   let L=P.spool*(W/SP.hov)*(rho/RHO0)*etl*ige*rot;
-  L=L/Math.max(.72,_u.y)-P.vel.y*M*.35*rot; // tilt compensation + vertical-speed damping: collective feels like climb-rate control
+  L=(_u.y>0?L/Math.max(.72,_u.y):L)-P.vel.y*M*.35*rot*clamp(_u.y,0,1); // tilt compensation + vertical-speed damping: collective feels like climb-rate control
   _F.set(0,-W,0).addScaledVector(_u,Math.max(0,L));
   _qi.copy(P.q).invert();_v.copy(_air).applyQuaternion(_qi);const qq=.5*rho/RHO0;
   // drag: fuselage along heading (forward/side), rotor disc resists vertical motion in world vertical
@@ -1067,6 +1067,9 @@ function stepHeli(dt){
   // cyclic commands an attitude (stick centred = level), not a rate
   const pT=IN.pitch>0?IN.pitch*22*DEG:IN.pitch*30*DEG,bT=IN.roll*40*DEG;
   let tP=(pT-pa)*SP.pitch*3,tR=(bT-bank)*SP.roll*2.8;
+  // no roll lock: near-full stick blends into a pure rate command, so you can roll or loop all the way round
+  const aR=smooth(.8,.97,Math.abs(IN.roll)),aP=IN.pitch>0?smooth(.8,.97,IN.pitch)*smooth(18,28,hs):0; // forward stick stays limited so holding it to go fast is safe; loops need full back stick above ~45 kt
+  tR=lerp(tR,IN.roll*SP.roll*3.2,aR);tP=lerp(tP,IN.pitch*SP.pitch*2.4,aP);
   let tY=IN.yaw*SP.yaw*1.4;if(hs>14)tY+=Math.sin(bank)*GR/Math.max(hs,14)*.9+beta*1.5*smooth(14,30,hs);
   if(P.onGround){tP=0;tR=0;tY=0}
   const k=Math.min(1,SP.resp*dt);P.w.x+=(tP-P.w.x)*k;P.w.z+=(tR-P.w.z)*k;P.w.y+=(tY-P.w.y)*k;
