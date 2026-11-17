@@ -265,10 +265,12 @@ const SPECS={
   uh60:{name:'UH-60 Black Hawk',type:'UTILITY HELICOPTER',desc:'Big twin-engine workhorse. Stable and powerful, a bit slower to turn.',
     heli:true,mass:8000,hov:.6,cx:4.5,pitch:1.0,roll:1.2,yaw:1.1,resp:3,gear:1.73,vsLim:4,cruise:68,cam:26,camUp:6,eye:[.75,5.0],span:16.4,bars:[50,55,60]},
   ah64:{name:'AH-64 Apache',type:'ATTACK HELICOPTER',desc:'Agile tandem-seat gunship. Quick rolls and aggressive nose-down sprints.',
-    heli:true,cockpitVis:true,mass:8000,hov:.52,cx:4.2,pitch:1.4,roll:1.9,yaw:1.6,resp:5,gear:1.7,vsLim:4.5,cruise:70,cam:24,camUp:5.5,eye:[.95,3.4],span:14.6,bars:[60,90,75]}
+    heli:true,cockpitVis:true,mass:8000,hov:.52,cx:4.2,pitch:1.4,roll:1.9,yaw:1.6,resp:5,gear:1.7,vsLim:4.5,cruise:70,cam:24,camUp:5.5,eye:[.95,3.4],span:14.6,bars:[60,90,75]},
+  chinook:{name:'CH-47 Chinook',type:'HEAVY-LIFT TANDEM ROTOR',desc:'Two huge counter-rotating rotors. Massive, steady, and surprisingly fast.',
+    heli:true,mass:15000,hov:.58,cx:11.2,pitch:.95,roll:1.0,yaw:1.0,resp:2.8,gear:1.62,vsLim:4,cruise:72,cam:36,camUp:8,eye:[.85,6.8],span:18.3,bars:[60,40,55]}
 };
 for(const id in SPECS){const s=SPECS[id];s.id=id;
-  if(s.heli){const W=s.mass*9.81;s.cy=(1/s.hov-1)*W/81;s.cz=s.cx*4;s.vApp=4;s.effV=20;s.vsClean=15;s.vsLand=12;s.gmax=3;continue}
+  if(s.heli){const W=s.mass*9.81;s.cy=(1/s.hov-1)*W/144;s.cz=s.cx*4;s.vApp=4;s.effV=20;s.vsClean=15;s.vsLand=12;s.gmax=3;continue}
   const W=s.mass*9.81, clmax=f=>s.cl0+s.flapCL*f+s.cla*(s.stall+3*f)*DEG;
   s.vsClean=Math.sqrt(W/(.5*1.225*s.S*clmax(0)));s.vsLand=Math.sqrt(W/(.5*1.225*s.S*clmax(1)));
   s.vApp=s.vsLand*1.35;s.effV=s.vsClean*1.45;}
@@ -898,6 +900,23 @@ function makePlane(id){
     for(const s of[1,-1]){tube(v(s*.6,-.6,-2.8),v(s*1.15,-1.3,-2.8),.08,grey,gearParts);wheel(s*1.15,-1.3,-2.8,.4)}
     tube(v(0,.55,8.0),v(0,-1.5,8.0),.06,grey,gearParts);wheel(0,-1.5,8.0,.2);
     nav(1.7,.65,8.45,[0,2.75,8.95],[0,1.55,1.5],[0,-.6,0]);
+  }else if(id==='chinook'){
+    const paint=new THREE.MeshStandardMaterial({map:livery('#4a5540',L=>{L.band(.42,.58,0,1,'#3e4836');for(let k=0;k<8;k++)L.win(.18+k*.075,.22,.028,.07,'#141c26',.5);
+      L.lines([.1,.2,.35,.5,.65,.8,.92],'rgba(0,0,0,.25)');L.hlines([.12,.88],.05,.95,'rgba(0,0,0,.18)');L.text('SK-47',.78,.32,28,'#1a1f17');L.noise(.04)}),metalness:.12,roughness:.78});
+    MAT.o=STD(0x4a5540,.12,.78);
+    loft([[-8.0,0,0,0,.3,2],[-7.7,1.4,.9,.9,.25,2.2],[-7.0,2.6,1.9,1.4,.4,3],[-6.0,3.0,2.6,1.5,.6,3.6],[6.0,3.0,2.6,1.5,.6,3.6],[7.2,2.6,2.4,1.2,.75,3.2],[7.9,1.6,1.6,.6,.9,2.6],[8.2,0,0,0,1.0,2]],paint);
+    glassC([[-7.7,0,0,0,.6,2],[-7.4,1.8,.9,0,.65,2.4],[-6.8,2.65,1.3,0,.85,2.8],[-6.3,2.8,1.0,0,1.2,3]],GLASS());
+    loft([[-7.0,0,0,0,1.85,2],[-6.6,1.0,.9,.2,1.9,2.4],[-5.4,1.1,1.0,.2,1.95,2.4],[-4.8,0,0,0,1.9,2]],MAT.o);
+    loft([[-5,0,0,0,1.85,2],[-4.5,.9,.5,.1,1.85,2.6],[4.0,.9,.5,.1,1.85,2.6],[4.5,0,0,0,1.85,2]],MAT.o);
+    loft([[3.6,0,0,0,1.9,2],[4.2,1.2,1.2,.2,2.3,2.6],[6.8,1.3,2.0,.2,2.7,2.8],[7.8,1.0,1.6,.2,2.8,2.4],[8.2,0,0,0,2.8,2]],MAT.o);
+    for(const s of[1,-1]){const e=add(loftGeo([[4.2,0,0,0,0,2],[4.5,.85,.85,.85,0,2.2],[7.2,.85,.85,.85,0,2.2],[7.6,.6,.6,.6,0,2]],20,4),MAT.o);e.position.set(s*1.3,2.5,0);
+      const ex=add(latheZ([[.3,0],[.28,.3]],14),nozM);ex.position.set(s*1.3,2.5,7.6);
+      const sp=add(loftGeo([[-3.6,0,0,0,0,2],[-3.2,.75,.75,.75,0,2.4],[3.2,.75,.75,.75,0,2.4],[3.6,0,0,0,0,2]],20,4),MAT.o);sp.position.set(s*1.55,-.35,0)}
+    at(new THREE.CylinderGeometry(.18,.22,.7,12),grey,0,2.4,-6.0);mainRotor(0,2.8,-6.0,9.15,3,.64);
+    at(new THREE.CylinderGeometry(.18,.22,.6,12),grey,0,3.75,6.4);const rr=mainRotor(0,4.05,6.4,9.15,3,.64);fx.rotors[fx.rotors.length-1].k=30;
+    for(const[x,z]of[[1.15,-4.0],[-1.15,-4.0],[1.3,4.8],[-1.3,4.8]]){tube(v(x*.75,-.6,z),v(x,-1.2,z),.08,grey,gearParts);wheel(x,-1.2,z,.42)}
+    box(.03,.5,.2,dark,0,2.2,1.0);box(.03,.03,1.0,chrome,.7,-.1,-7.6);
+    nav(2.0,-.25,0,[0,1.05,8.15],[0,2.25,0],[0,-.85,0]);
   }else{ // f22
     const paint=new THREE.MeshStandardMaterial({map:livery('#737e88',L=>{
       for(let k=0;k<26;k++){const v0=.05+Math.random()*.9,u0=Math.random();L.g.strokeStyle='rgba(150,160,170,.35)';L.g.lineWidth=3;L.g.beginPath();L.g.moveTo(v0*L.W,u0*L.H);for(let z=0;z<4;z++)L.g.lineTo((v0+(z%2?.012:-.012)+z*.01)*L.W,(u0+z*.03)*L.H);L.g.stroke()}
@@ -1033,11 +1052,11 @@ function step(dt){
 function stepHeli(dt){
   axes();_air.copy(P.vel).sub(P.wind);const speed=_air.length();const rho=RHO0*Math.exp(-Math.max(P.pos.y,0)/8500);
   P.ias=speed*Math.sqrt(rho/RHO0);P.stall=false;P.aoa=0;const M=SP.mass,W=M*GR;
-  P.spool+=(P.throttle-P.spool)*Math.min(1,dt*3);
+  P.spool+=(P.throttle-P.spool)*Math.min(1,dt*5);
   const hs=Math.hypot(_air.x,_air.z),gh=Math.max(groundAt(P.pos.x,P.pos.z),0),agl=P.pos.y-GEAR-gh;
   const etl=1+.14*smooth(5,18,hs)*(1-.6*smooth(45,85,hs)),ige=1+.12*(1-smooth(0,SP.span*.6,agl)),rot=clamp((P.rpm-.3)/.6,0,1);
   let L=P.spool*(W/SP.hov)*(rho/RHO0)*etl*ige*rot;
-  L=L/Math.max(.72,_u.y)-P.vel.y*M*.55*rot; // tilt compensation + vertical-speed damping: collective feels like climb-rate control
+  L=L/Math.max(.72,_u.y)-P.vel.y*M*.35*rot; // tilt compensation + vertical-speed damping: collective feels like climb-rate control
   _F.set(0,-W,0).addScaledVector(_u,Math.max(0,L));
   _qi.copy(P.q).invert();_v.copy(_air).applyQuaternion(_qi);const qq=.5*rho/RHO0;
   // drag: fuselage along heading (forward/side), rotor disc resists vertical motion in world vertical
@@ -1046,9 +1065,9 @@ function stepHeli(dt){
   _F.y+=-SP.cy*qq*_air.y*Math.abs(_air.y);_F.addScaledVector(_air,-M*.02);P.g=Math.max(0,L)/W;
   const pa=Math.asin(clamp(_f.y,-1,1)),bank=Math.atan2(-_r.y,_u.y),beta=speed>3?Math.atan2(_v.x,-_v.z):0;
   // cyclic commands an attitude (stick centred = level), not a rate
-  const pT=IN.pitch>0?IN.pitch*20*DEG:IN.pitch*22*DEG,bT=IN.roll*35*DEG;
-  let tP=(pT-pa)*SP.pitch*2.2,tR=(bT-bank)*SP.roll*2;
-  let tY=IN.yaw*SP.yaw;if(hs>14)tY+=Math.sin(bank)*GR/Math.max(hs,14)*.9+beta*1.5*smooth(14,30,hs);
+  const pT=IN.pitch>0?IN.pitch*22*DEG:IN.pitch*30*DEG,bT=IN.roll*40*DEG;
+  let tP=(pT-pa)*SP.pitch*3,tR=(bT-bank)*SP.roll*2.8;
+  let tY=IN.yaw*SP.yaw*1.4;if(hs>14)tY+=Math.sin(bank)*GR/Math.max(hs,14)*.9+beta*1.5*smooth(14,30,hs);
   if(P.onGround){tP=0;tR=0;tY=0}
   const k=Math.min(1,SP.resp*dt);P.w.x+=(tP-P.w.x)*k;P.w.z+=(tR-P.w.z)*k;P.w.y+=(tY-P.w.y)*k;
   _tmp.set(P.w.x,-P.w.y,-P.w.z);const ang=_tmp.length();if(ang>1e-6){_dq.setFromAxisAngle(_tmp.divideScalar(ang),ang*dt);P.q.multiply(_dq).normalize()}

@@ -1,6 +1,6 @@
 # Skyward — Flight Simulator
 
-A browser flight sim with 8 airplanes (Skylark trainer, Vortex aerobatic, Kestrel twin, Meridian jet, PC-12, F-16, F/A-18, F-22) and 3 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache), three maps (Green Valley, Red Rock Canyon, Alpine Peaks) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
+A browser flight sim with 8 airplanes (Skylark trainer, Vortex aerobatic, Kestrel twin, Meridian jet, PC-12, F-16, F/A-18, F-22) and 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), three maps (Green Valley, Red Rock Canyon, Alpine Peaks) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
 
 **Play:** https://n9165937-bit.github.io/flight-sim/
 
