@@ -29,3 +29,9 @@ W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopte
 - Rescue: land beside stranded people (on the ground, on mountains, or city rooftops), then fly them to a hospital helipad.
 - Cargo: hover over a crate to hook it on a 14 m rope, carry it (it swings and pulls on your helicopter), and lower it gently into the drop zone.
 - Missions chain one after another; points for speed, best score saved per helicopter and map.
+
+## Dogfight (PvP + AI)
+- New mode on the menu. Pick how many AI pilots (rookies or aces) — or none for PvP only.
+- Every aircraft has a gun (SPACE, with light aim assist near the lead pip). Military aircraft also carry heat-seeking missiles (X, lock on for ~1 s) and flares (L).
+- Players on the same map in Dogfight mode can shoot each other: hits, missiles and kills are shared over the multiplayer server, with a kill feed and K/D score. AI pilots are on your screen only.
+- Shot down? You respawn after 4 seconds and keep your score.

@@ -68,6 +68,7 @@
   client.on('message', (topic, msg) => {
     const id = topic.slice(BASE.length);
     if (!id || id === myId) return;
+    if (id === 'evt') { onEvent(msg); return; }
     if (!msg || !msg.length) { removeOther(id); return; }
     let d; try { d = JSON.parse(msg.toString()); } catch (e) { return; }
     const type = SPECS[d.p] ? d.p : 'skylark';
@@ -85,6 +86,7 @@
     o.tVel = new THREE.Vector3(num(d.vx), num(d.vy), num(d.vz));
     o.tQ = new THREE.Quaternion(num(d.qx), num(d.qy), num(d.qz), num(d.qw) || 1).normalize();
     o.tTime = performance.now(); o.gear = d.g ? 1 : 0; o.ab = num(d.ab);
+    o.df = d.m === 1; o.hp = num(d.hp); o.fire = d.f === 1;
   });
 
   // ---- send ----
@@ -98,7 +100,8 @@
       n: myName, p: SP.id, x: r2(P.pos.x), y: r2(P.pos.y), z: r2(P.pos.z),
       qx: r4(P.q.x), qy: r4(P.q.y), qz: r4(P.q.z), qw: r4(P.q.w),
       vx: r2(P.vel.x), vy: r2(P.vel.y), vz: r2(P.vel.z), g: P.gearT > .5 ? 1 : 0,
-      ab: SP.ab ? r2(Math.max(0, (P.spool - .6) / .4)) : 0
+      ab: SP.ab ? r2(Math.max(0, (P.spool - .6) / .4)) : 0,
+      m: DF.on ? 1 : 0, hp: DF.on ? Math.round(DF.hp) : 100, f: DF.on && DF.netFire > 0 ? 1 : 0
     }));
   }, 1000 / SEND_HZ);
   addEventListener('beforeunload', () => { try { client.publish(BASE + myId, ''); client.end(true); } catch (e) {} });
@@ -123,5 +126,23 @@
       for (const f of o.model.flames) { f.visible = o.ab > .05; f.scale.set(1, 1, .35 + o.ab * 1.3); }
     }
   })();
+  // ---- dogfight PvP: shooter reports gun hits, victim simulates missiles fired at them ----
+  function onEvent(msg) {
+    let e; try { e = JSON.parse(msg.toString()); } catch (er) { return; }
+    if (!e || e.from === myId || typeof DF === 'undefined') return;
+    const fn = String(e.fn || 'Pilot').slice(0, 14);
+    if (e.t === 'hit' && e.to === myId && DF.on) { DF.lastHitBy = e.from; dfDamage(Math.min(80, num(e.dmg)), fn); }
+    else if (e.t === 'msl' && e.to === myId && DF.on && !P.crashed && Array.isArray(e.p)) {
+      const V = THREE.Vector3; dfFireMissile(new V(num(e.p[0]), num(e.p[1]), num(e.p[2])), new V(num(e.v[0]), num(e.v[1]), num(e.v[2])), new V(num(e.d[0]), num(e.d[1]), num(e.d[2])).normalize(), 'me', { name: fn }, true);
+      DF.msl[DF.msl.length - 1].from = e.from; showMsg('MISSILE LAUNCH', fn + ' fired at you · turn hard / flares (L)', '#ff4040', 2500);
+    }
+    else if (e.t === 'kill') { if (DF.on) dfFeed(String(e.k).slice(0, 14) + ' ✈ ' + String(e.v).slice(0, 14)); if (e.kid === myId && DF.on) { DF.k++; showMsg('SPLASH ONE', String(e.v).slice(0, 14) + ' shot down · ' + DF.k + ' kills', '#ffd27a', 2200); } }
+  }
+  window.MP = {
+    name: () => myName,
+    send: e => { if (client.connected) client.publish(BASE + 'evt', JSON.stringify(Object.assign({ from: myId, fn: myName }, e))); },
+    targets: () => Object.entries(others).filter(([, o]) => o.df && o.tPos).map(([id, o]) => o.tgt || (o.tgt = { id, isPlayer: true, get name() { return o.name; }, get pos() { return o.model.g.position; }, get vel() { return o.tVel; }, get hp() { return o.hp; }, r: Math.max(5, SPECS[o.type].span * .55), alive: true })),
+    firing: () => Object.values(others).filter(o => o.df && o.fire).map(o => ({ pos: o.model.g.position, f: new THREE.Vector3(0, 0, -1).applyQuaternion(o.model.g.quaternion) }))
+  };
   setInterval(setBadge, 2000); setBadge();
 })();
