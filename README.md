@@ -1,6 +1,6 @@
 # Skyward — Flight Simulator
 
-A browser flight sim with 8 airplanes (Skylark trainer, Vortex aerobatic, Kestrel twin, Meridian jet, PC-12, F-16, F/A-18, F-22) and 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), four maps (Green Valley, Red Rock Canyon, Alpine Peaks, Metro City) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
+A browser flight sim with 8 airplanes (Skylark trainer, Vortex aerobatic, Kestrel twin, Meridian jet, PC-12, F-16, F/A-18, F-22) and 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), five maps (Green Valley, Red Rock Canyon, Alpine Peaks, Metro City, Ocean Fleet) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
 
 **Play:** https://n9165937-bit.github.io/flight-sim/
 
@@ -35,3 +35,10 @@ W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopte
 - Every aircraft has a gun (SPACE, with light aim assist near the lead pip). Military aircraft also carry heat-seeking missiles (X, lock on for ~1 s) and flares (L).
 - Players on the same map in Dogfight mode can shoot each other: hits, missiles and kills are shared over the multiplayer server, with a kill feed and K/D score. AI pilots are on your screen only.
 - Shot down? You respawn after 4 seconds and keep your score.
+
+## Ocean Fleet
+- Open ocean with islands, a volcano and Kai Island Naval Air Station.
+- Two aircraft carriers (USS Liberty and USS Resolute) with destroyer escorts.
+- Carrier landings: gear down, fly the 3.5° glide slope to the angled deck and catch an arresting wire (aim for the 3-wire). Miss them and it's a bolter — go around. Throttle back to release the wire.
+- Carrier takeoffs: Runway mode on a carrier puts you on the catapult — full throttle to launch.
+- Helicopters can use the carrier helo spots for missions.

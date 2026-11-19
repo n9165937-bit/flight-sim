@@ -218,7 +218,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
     <div class="sec">CONDITIONS</div>
     <div class="opts">
       <label>Airport <select id="selApt"></select></label>
-      <label>Map <select id="selMap"><option value="valley">Green Valley</option><option value="canyon">Red Rock Canyon</option><option value="alpine">Alpine Peaks</option><option value="city">Metro City</option></select></label>
+      <label>Map <select id="selMap"><option value="valley">Green Valley</option><option value="canyon">Red Rock Canyon</option><option value="alpine">Alpine Peaks</option><option value="city">Metro City</option><option value="ocean">Ocean Fleet</option></select></label>
       <label>Graphics <select id="selGfx"><option value="auto">Auto (smooth)</option><option value="high">High</option><option value="low">Fast</option></select></label>
       <label>Wind <select id="selWind"><option value="calm">Calm</option><option value="light">Light breeze</option><option value="cross">Crosswind</option><option value="gusty">Gusty</option></select></label>
       <label>Weather <select id="selWx"><option value="clear">Clear</option><option value="overcast">Overcast</option><option value="rain">Rain</option><option value="snow">Snow</option><option value="fog">Fog</option></select></label>
@@ -321,7 +321,7 @@ function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
 function fbm(x,y,o){let s=0,a=1,f=1,n=0;for(let i=0;i<o;i++){s+=vnoise(x*f+i*17.3,y*f-i*9.1)*a;n+=a;a*=.5;f*=2.03}return s/n}
 
 const WORLD=12000, HALF=WORLD/2, SEG=240, N=SEG+1, CELL=WORLD/SEG;
-const MAP=['#canyon','#valley','#alpine','#city'].includes(location.hash)?location.hash.slice(1):(['canyon','alpine','city'].includes(lsGet('skyward_map'))?lsGet('skyward_map'):'valley');
+const MAP=['#canyon','#valley','#alpine','#city','#ocean'].includes(location.hash)?location.hash.slice(1):(['canyon','alpine','city','ocean'].includes(lsGet('skyward_map'))?lsGet('skyward_map'):'valley');
 /* ---------------- canyon map terrain ---------------- */
 const CANYON={
   zc:x=>900*Math.sin(x*.00045)+380*Math.sin(x*.0011+1.3)+180*Math.sin(x*.0023+.5),
@@ -401,8 +401,26 @@ const cityObsNear=(x,z)=>CITY.grid.get(Math.floor(x/100)+','+Math.floor(z/100))|
 const cityIn=(o,x,z,m=0)=>o.t==='c'?Math.hypot(x-o.x,z-o.z)<o.r+m:x>o.x0-m&&x<o.x1+m&&z>o.z0-m&&z<o.z1+m;
 function cityRoofAt(x,z,y){let r=-1e9;for(const o of cityObsNear(x,z))if(o.roof&&cityIn(o,x,z)&&y>=o.y1-1.5)r=Math.max(r,o.y1);return r}
 function cityHit(x,z,y0,y1){for(const o of cityObsNear(x,z))if(cityIn(o,x,z)&&y0<o.y1-1.5&&y1>o.y0)return true;return false}
+/* ---------------- ocean map: islands, carriers (data + collision) ---------------- */
+CITY.obsOn=CITY.on||MAP==='ocean';
+const OCEAN={on:MAP==='ocean',DECK:20,isl:[{x:-2600,z:2300,r:1150,h:55},{x:2700,z:-2200,r:950,h:540,vol:1},{x:-3100,z:-2700,r:520,h:120},{x:3300,z:2950,r:430,h:70},{x:700,z:-3900,r:380,h:45}],
+  carriers:[{id:'CV1',name:'USS Liberty',x:0,z:0},{id:'CV2',name:'USS Resolute',x:2050,z:2450}],ships:[[-650,650],[700,-950],[2700,1900],[1450,3150]]};
+function oceanHeight(x,z){let h=-62+fbm(x*.0012,z*.0012,3)*14;
+  for(const I of OCEAN.isl){const d=Math.hypot(x-I.x,z-I.z)*(1+fbm(x*.002+I.x,z*.002,3)*.35),t=1-d/I.r;if(t<=-.15)continue;
+    const top=I.vol?I.h*(.12+.88*Math.pow(Math.max(t,0),2.2))-(t>.93?(t-.93)*1800:0):I.h*(.45+.55*Math.max(t,0))+fbm(x*.006,z*.006,2)*14*Math.max(t,0);
+    h=Math.max(h,lerp(-62,top,smooth(-.15,.12,t)))}
+  return h}
+// deck footprint as collision boxes (carrier-local, bow toward -z)
+const CARRIER_BOX=[[-24,24,-150,165,20],[-14,14,-172,-150,20],[-44,-24,-80,150,20],[18,30,-20,35,58],[22,26,0,8,78]];
+if(OCEAN.on){for(const c of OCEAN.carriers)for(const[x0,x1,z0,z1,y1]of CARRIER_BOX)cityAddObs({t:'b',x0:c.x+x0,x1:c.x+x1,z0:c.z+z0,z1:c.z+z1,y0:-15,y1,roof:true,carrier:c});
+  for(const[x,z]of OCEAN.ships){cityAddObs({t:'b',x0:x-9,x1:x+9,z0:z-75,z1:z+75,y0:-10,y1:9,roof:true});cityAddObs({t:'b',x0:x-6,x1:x+6,z0:z-25,z1:z+15,y0:-10,y1:24,roof:false})}}
+function carrierAt(x,z){for(const o of cityObsNear(x,z))if(o.carrier&&cityIn(o,x,z))return o.carrier;return null}
 const PAD=(id,name,x,z,e)=>({id,name,x,z,e,rot:0,len:30,w:30,bld:0,pad:true,pw:50,pl:50,bl:110}); // flat area must span a terrain-grid cell (50 m)
-const airports=MAP==='city'?[
+const airports=MAP==='ocean'?[
+  ...OCEAN.carriers.flatMap(c=>[{id:c.id,name:c.name+' (carrier)',x:c.x-12,z:c.z+45,e:20,rot:9*DEG,len:230,w:24,bld:0,carrier:c,roof:true,oneway:1},Object.assign(PAD(c.id+'H',c.name+' helo spot',c.x-6,c.z-122,20),{roof:true})]),
+  {id:'NKAI',name:'Kai Island Naval Air Station',x:-2600,z:2300,e:12,rot:.6,len:1900,w:45,bld:3,pw:60,pl:120,bl:260},
+  PAD('HKAI','Kai Island helipad',-2350,2650,12),PAD('HVOL','Volcano Observatory',2420,-1650,Math.round(oceanHeight(2420,-1650)))
+]:MAP==='city'?[
   {id:'KCTY',name:'Metro City Airport',x:0,z:2050,e:8,rot:Math.PI/2,len:1800,w:42,bld:3,pw:60,pl:120,bl:160},
   PAD('HWF','Waterfront Helipad',1500,560,8),
   ...ROOFPADS.map(([id,name,x,z,s,e])=>Object.assign(PAD(id,name,x,z,e),{roof:true}))
@@ -434,6 +452,7 @@ function aptLocal(a,x,z){const dx=x-a.x,dz=z-a.z,c=Math.cos(a.rot),s=Math.sin(a.
 function aptWorld(a,lx,lz){const c=Math.cos(a.rot),s=Math.sin(a.rot);return[a.x+lx*c+lz*s,a.z-lx*s+lz*c]}
 function aptDist(a,x,z,padW=a.pw??90,padL=a.pl??160){const[lx,lz]=aptLocal(a,x,z);const ex=Math.max(Math.abs(lx)-a.w-padW,0),ez=Math.max(Math.abs(lz)-a.len/2-padL,0);return Math.hypot(ex,ez)}
 function rawHeight(x,z){
+  if(MAP==='ocean'){let h=oceanHeight(x,z);for(const a of airports){if(a.roof)continue;const t=smooth(0,a.bl??520,aptDist(a,x,z));h=a.e+(h-a.e)*t}return h}
   if(MAP==='city'){let h=cityHeight(x,z)+smooth(4700,6000,Math.max(Math.abs(x),Math.abs(z)))*1300;
     for(const a of airports){if(a.roof)continue;const t=smooth(0,a.bl??520,aptDist(a,x,z));h=a.e+(h-a.e)*t}return h}
   if(MAP!=='valley'){let h=(MAP==='canyon'?canyonHeight(x,z):alpineHeight(x,z))+smooth(4700,6000,Math.max(Math.abs(x),Math.abs(z)))*1300;
@@ -460,11 +479,11 @@ function slopeAt(x,z){return Math.hypot(groundAt(x+4,z)-groundAt(x-4,z),groundAt
 function onRunway(x,z,pad=0){for(const a of airports){const[lx,lz]=aptLocal(a,x,z);if(Math.abs(lx)<a.w/2+6+pad&&Math.abs(lz)<a.len/2+20)return a}return null}
 function nearAirport(x,z,pad){for(const a of airports)if(aptDist(a,x,z)<pad)return a;return null}
 // work out which runway ends have a clear approach, and at what glide slope
-for(const a of airports)for(const s of[1,-1]){
+for(const a of airports)for(const s of[1,-1]){if(a.oneway&&s!==a.oneway)continue;
   const aim=a.pad?0:Math.min(300,a.len*.22), aimLz=a.pad?0:s*(a.len/2-aim);
-  for(const gs of(a.pad?[6,8,10,12]:[3,3.5,4,4.5,5.5])){let f=4200;
-    for(let d=CITY.on?30:150;d<=4200;d+=CITY.on?25:50){const[x,z]=aptWorld(a,0,aimLz+s*d);if(Math.abs(x)>HALF-300||Math.abs(z)>HALF-300){f=d;break}
-      const ga=d*Math.tan(gs*DEG);if(groundAt(x,z)>a.e+ga-Math.min(30,ga*.4)||CITY.on&&cityHit(x,z,a.e+ga-15,a.e+ga-14)){f=d;break}}
+  for(const gs of(a.pad?[6,8,10,12]:a.carrier?[3.5,4]:[3,3.5,4,4.5,5.5])){let f=4200;
+    for(let d=CITY.obsOn?30:150;d<=4200;d+=CITY.obsOn?25:50){const[x,z]=aptWorld(a,0,aimLz+s*d);if(Math.abs(x)>HALF-300||Math.abs(z)>HALF-300){f=d;break}
+      const ga=d*Math.tan(gs*DEG);if(groundAt(x,z)>a.e+ga-Math.min(30,ga*.4)||CITY.obsOn&&!(a.carrier&&carrierAt(x,z)===a.carrier)&&cityHit(x,z,a.e+ga-15,a.e+ga-14)){f=d;break}}
     if(f>=(a.pad?600:MAP==='valley'?2400:MAP==='alpine'?1500:1200)){a.ends.push({s,gs,aimLz,maxD:Math.min(f-150,4000),hdg:s===1?a.h1:(a.h1+180)%360,num:s===1?a.l1:a.l2});break}}}
 const landable=airports.filter(a=>a.ends.length);
 
@@ -475,7 +494,7 @@ renderer.setSize(innerWidth,innerHeight);
 renderer.domElement.id='gl';
 document.body.prepend(renderer.domElement);
 const scene=new THREE.Scene();
-const HORIZON=new THREE.Color(MAP==='city'?'#cfd9e2':MAP==='canyon'?'#e6dccd':MAP==='alpine'?'#d4e3f0':'#cfe2f0');
+const HORIZON=new THREE.Color(MAP==='ocean'?'#c4d9ea':MAP==='city'?'#cfd9e2':MAP==='canyon'?'#e6dccd':MAP==='alpine'?'#d4e3f0':'#cfe2f0');
 scene.fog=new THREE.Fog(HORIZON,1800,11500);
 const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,0.1,30000);
 const hemi=new THREE.HemisphereLight(0xd6ebff,0x56663a,0.7);scene.add(hemi);
@@ -561,9 +580,9 @@ function padTex(a){const c=document.createElement('canvas');c.width=c.height=256
 const lightGeo=new THREE.BoxGeometry(.6,.5,.6),lightMat=new THREE.MeshBasicMaterial({color:0xfff2b0});
 airports.forEach((a,ai)=>{
   const grp=new THREE.Group();grp.position.set(a.x,a.e,a.z);grp.rotation.y=a.rot;scene.add(grp);
-  const rw=new THREE.Mesh(new THREE.PlaneGeometry(a.w,a.len),new THREE.MeshLambertMaterial({map:a.pad?padTex(a):runwayTex(a)}));rw.rotation.x=-Math.PI/2;rw.position.y=.18+ai*.015;rw.receiveShadow=true;grp.add(rw);
+  const rw=new THREE.Mesh(new THREE.PlaneGeometry(a.w,a.len),new THREE.MeshLambertMaterial({map:a.pad?padTex(a):runwayTex(a)}));rw.rotation.x=-Math.PI/2;rw.position.y=.18+ai*.015;rw.receiveShadow=true;if(!a.carrier)grp.add(rw);
   // edge lights (skip where another runway crosses)
-  const pts=[];if(a.pad)for(let k=0;k<8;k++)pts.push([Math.cos(k/8*Math.PI*2)*(a.w/2+1),Math.sin(k/8*Math.PI*2)*(a.w/2+1)]);else for(let z=-a.len/2;z<=a.len/2;z+=60)for(const s of[-1,1]){const[wx,wz]=aptWorld(a,s*(a.w/2+1.5),z);if(airports.some(b=>b!==a&&(()=>{const[lx,lz]=aptLocal(b,wx,wz);return Math.abs(lx)<b.w/2+4&&Math.abs(lz)<b.len/2+4})()))continue;pts.push([s*(a.w/2+1.5),z])}
+  const pts=[];if(a.pad)for(let k=0;k<8;k++)pts.push([Math.cos(k/8*Math.PI*2)*(a.w/2+1),Math.sin(k/8*Math.PI*2)*(a.w/2+1)]);else for(let z=-a.len/2;z<=a.len/2;z+=a.carrier?23:60)for(const s of[-1,1]){const[wx,wz]=aptWorld(a,s*(a.w/2+1.5),z);if(airports.some(b=>b!==a&&(()=>{const[lx,lz]=aptLocal(b,wx,wz);return Math.abs(lx)<b.w/2+4&&Math.abs(lz)<b.len/2+4})()))continue;pts.push([s*(a.w/2+1.5),z])}
   const lights=new THREE.InstancedMesh(lightGeo,lightMat,pts.length);const dm=new THREE.Object3D();pts.forEach((p,i)=>{dm.position.set(p[0],.4,p[1]);dm.updateMatrix();lights.setMatrixAt(i,dm.matrix)});lights.frustumCulled=false;grp.add(lights);
   grp.updateMatrixWorld(true);for(const p of pts){const w=new V3(p[0],.9,p[1]).applyMatrix4(grp.matrixWorld);RWYLP.push(w.x,w.y,w.z)}
   if(!a.bld)return;
@@ -669,6 +688,63 @@ if(CITY.on){
  CITYM={mats:[...mats,twinM],beacons,streetL,crown:crownGlow};
 }
 function cityLights(t,W){if(!CITYM)return;const k=t==='night'?.8:t==='day'?(W.precip||W.id==='fog'?.12:0):.5;for(const m of CITYM.mats)m.emissiveIntensity=k;CITYM.streetL.visible=t!=='day'||!!W.lamp;CITYM.crown.color.setHex(t==='day'?0xc8d6de:0xbfe8ff)}
+
+/* ---------------- ocean map: ships ---------------- */
+let OCM=null;
+if(OCEAN.on){
+ const S=6,CW=100*S,CH=360*S,X=x=>(x+50)*S,Y=z=>(z+180)*S;   // deck canvas: 100 x 360 m, aft at the bottom
+ const deckTex=(num)=>{const c=document.createElement('canvas');c.width=CW;c.height=CH;const g=c.getContext('2d');
+   g.fillStyle='#3d4045';g.fillRect(0,0,CW,CH);for(let i=0;i<9000;i++){g.fillStyle=`rgba(${Math.random()<.5?0:255},${Math.random()<.5?0:255},${Math.random()<.5?0:255},.04)`;g.fillRect(Math.random()*CW,Math.random()*CH,3,3)}
+   for(let i=0;i<40;i++){g.fillStyle='rgba(0,0,0,.08)';g.beginPath();g.ellipse(Math.random()*CW,Math.random()*CH,20+Math.random()*60,8+Math.random()*30,Math.random()*3,0,7);g.fill()}
+   // elevators
+   g.strokeStyle='rgba(230,230,230,.5)';g.lineWidth=2;for(const[x0,z0,w,d]of[[24,-70,-18,-26],[24,-20,-18,-26],[24,95,-18,-26],[-44,40,18,-26]])g.strokeRect(X(Math.min(x0,x0+w)),Y(Math.min(z0,z0+d)),Math.abs(w)*S,Math.abs(d)*S);
+   // bow catapults
+   g.strokeStyle='#8a8d90';g.lineWidth=3;for(const x of[-8,8]){g.beginPath();g.moveTo(X(x),Y(-150));g.lineTo(X(x),Y(-55));g.stroke()}
+   // angled landing area
+   g.save();g.translate(X(-12),Y(45));g.rotate(-9*DEG);const L=115*S,Wd=12*S;
+   g.fillStyle='rgba(0,0,0,.18)';g.fillRect(-Wd,-L,2*Wd,2*L);
+   g.strokeStyle='#f2f2f2';g.lineWidth=5;g.setLineDash([30,18]);g.beginPath();g.moveTo(-Wd,-L);g.lineTo(-Wd,L);g.moveTo(Wd,-L);g.lineTo(Wd,L);g.stroke();
+   g.setLineDash([60,40]);g.lineWidth=4;g.beginPath();g.moveTo(0,-L);g.lineTo(0,L);g.stroke();g.setLineDash([]);
+   g.strokeStyle='#ffd23a';g.lineWidth=4;g.beginPath();g.moveTo(Wd+6*S,-L);g.lineTo(Wd+6*S,L);g.stroke();             // foul line
+   g.fillStyle='#e8e8e8';for(let i=0;i<8;i++){g.fillStyle=i%2?'#d23a2a':'#f2f2f2';g.fillRect(-Wd+i*Wd/4,L-3*S,Wd/4,3*S)}   // ramp stripes
+   g.strokeStyle='#9a9ea3';g.lineWidth=4;for(const d of[38,52,66,80]){g.beginPath();g.moveTo(-Wd*1.1,L-d*S);g.lineTo(Wd*1.1,L-d*S);g.stroke()}   // arresting wires
+   g.restore();
+   g.save();g.translate(X(-4),Y(-120));g.fillStyle='rgba(255,255,255,.85)';g.font=`900 ${24*S}px sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillText(num,0,0);g.restore();
+   g.strokeStyle='#ffd23a';g.lineWidth=3;g.setLineDash([14,10]);g.beginPath();g.moveTo(X(14),Y(-160));g.lineTo(X(14),Y(160));g.stroke();g.setLineDash([]);
+   const t=new THREE.CanvasTexture(c);t.anisotropy=renderer.capabilities.getMaxAnisotropy();t.repeat.set(1/100,1/360);t.offset.set(.5,.5);return t};
+ const hullM=new THREE.MeshStandardMaterial({color:0x6e757d,metalness:.25,roughness:.6}),darkM=new THREE.MeshStandardMaterial({color:0x4a5057,metalness:.3,roughness:.6}),redM=new THREE.MeshLambertMaterial({color:0x7a2a24});
+ const outline=[[-2,-172],[12,-160],[24,-128],[24,165],[-30,165],[-44,150],[-44,-80],[-26,-110],[-16,-150]];
+ const shp=new THREE.Shape();outline.forEach(([x,z],i)=>i?shp.lineTo(x,-z):shp.moveTo(x,-z));
+ const hullGeo=new THREE.ExtrudeGeometry(shp,{depth:32,bevelEnabled:false});hullGeo.rotateX(-Math.PI/2);hullGeo.translate(0,-12,0);
+ const shipT=[];
+ OCEAN.carriers.forEach((c,ci)=>{const G=new THREE.Group();G.position.set(c.x,0,c.z);scene.add(G);
+   const deck=new THREE.MeshStandardMaterial({map:deckTex(ci?'81':'80'),roughness:.85,metalness:.05});
+   const hull=new THREE.Mesh(hullGeo,[deck,hullM]);hull.castShadow=hull.receiveShadow=true;G.add(hull);
+   const wl=new THREE.Mesh(new THREE.BoxGeometry(46,3,300),redM);wl.position.set(0,-1.4,10);G.add(wl);    // boot-top at the waterline
+   // island superstructure
+   const isl=(w,h,d,x,y,z,m=hullM)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);b.castShadow=true;G.add(b);return b};
+   isl(11,16,52,24,28,8);isl(10,10,34,24,41,4);isl(9,6,20,24,49,0);isl(11.4,1.2,26,24,46.2,4,darkM);
+   const win=new THREE.MeshBasicMaterial({color:0x1a2a36});isl(11.6,1.6,24,24,44,4,win);
+   isl(1.6,24,1.6,24,64,4,darkM);isl(7,.5,.5,24,70,4,darkM);isl(5,.5,.5,24,74,4,darkM);
+   const rad=new THREE.Mesh(new THREE.SphereGeometry(2.4,12,8),new THREE.MeshLambertMaterial({color:0xe8e8e8}));rad.position.set(24,58,-14);G.add(rad);
+   const sp=new THREE.Mesh(new THREE.BoxGeometry(5,1.2,.3),darkM);sp.position.set(24,68,4);G.add(sp);shipT.push(sp);
+   const hull2=new THREE.Mesh(new THREE.CylinderGeometry(7,11,10,4),hullM);hull2.rotation.y=Math.PI/4;hull2.position.set(0,-8,-160);   // bulbous bow hint (under water)
+   // parked aircraft on the bow / around the island
+   const parked=[['f18',12,-140,.2],['f18',10,-120,.25],['f18',14,-98,.2],['f18',-6,-38,3.3],['uh60',12,130,0],['f18',14,150,-.2]];
+   OCEAN.parkTodo=(OCEAN.parkTodo||[]).concat(parked.map(p=>[G,...p]));
+   // deck edge lights / beacon
+   const bc=new THREE.Mesh(new THREE.SphereGeometry(.7,8,6),new THREE.MeshBasicMaterial({color:0xff2020,fog:false}));bc.position.set(24,79,4);G.add(bc);shipT.push(bc);
+   // wake
+   const wake=new THREE.Mesh(new THREE.PlaneGeometry(60,700),new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:.2,depthWrite:false}));wake.rotation.x=-Math.PI/2;wake.position.set(-6,.4,520);G.add(wake)});
+ // destroyer escorts
+ const dshape=new THREE.Shape();[[0,-80],[8,-55],[9,70],[-9,70],[-8,-55]].forEach(([x,z],i)=>i?dshape.lineTo(x,-z):dshape.moveTo(x,-z));
+ const dgeo=new THREE.ExtrudeGeometry(dshape,{depth:17,bevelEnabled:false});dgeo.rotateX(-Math.PI/2);dgeo.translate(0,-8,0);
+ for(const[x,z]of OCEAN.ships){const G=new THREE.Group();G.position.set(x,0,z);scene.add(G);G.add(new THREE.Mesh(dgeo,[new THREE.MeshLambertMaterial({color:0x585e64}),hullM]));
+   const b=(w,h,d,px,py,pz)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),hullM);m.position.set(px,py,pz);m.castShadow=true;G.add(m)};
+   b(11,8,36,0,13,-5);b(8,6,14,0,20,-10);b(1.2,14,1.2,0,30,-8);b(4,4,8,0,12,-48);b(2,8,2,0,13,24);
+   const wake=new THREE.Mesh(new THREE.PlaneGeometry(26,300),new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:.18,depthWrite:false}));wake.rotation.x=-Math.PI/2;wake.position.set(0,.4,220);G.add(wake)}
+ OCM={spin:shipT};
+}
 
 // PAPI (repositioned for each landing approach)
 const papi=new THREE.Group();papi.visible=false;scene.add(papi);
@@ -1364,6 +1440,7 @@ function makePlane(id){
   return Object.assign({g,props,discs,gearParts,flames,cs,ailL:D,ailR:D,elev:D,rud:D},fx);
 }
 
+if(OCEAN.parkTodo)for(const[G,id,x,z,r]of OCEAN.parkTodo){const m=makePlane(id);m.g.position.set(x,20+SPECS[id].gear,z);m.g.rotation.y=r;for(const q of m.pilotM)q.visible=false;G.add(m.g)}
 let plane=makePlane('skylark');scene.add(plane.g);
 const shadow=new THREE.Mesh(new THREE.CircleGeometry(5.5,20),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.3,depthWrite:false}));shadow.rotation.x=-Math.PI/2;scene.add(shadow);
 function selectPlane(id){SP=SPECS[id];GEAR=SP.gear;scene.remove(plane.g);plane=makePlane(id);scene.add(plane.g);makeCockpit(id);lsSet('skyward_plane',id);
@@ -1516,11 +1593,12 @@ function heliGround(dt,water,surf){
 function ground(dt){
   const gh=groundAt(P.pos.x,P.pos.z);let water=gh<.3,surf=Math.max(gh,0),onRoof=false;
   const bottom=P.pos.y-(P.gearT>=.99?GEAR:GEAR*.55);
-  if(CITY.on&&!P.crashed){axes();const x=P.pos.x,z=P.pos.z;
-    if(cityHit(x,z,bottom,P.pos.y+1)){doCrash('Flew into a building');return}
-    const hs=SP.span*.45;for(const s of[-1,1]){const tx=x+_r.x*hs*s,ty=P.pos.y+_r.y*hs*s,tz=z+_r.z*hs*s;if(cityHit(tx,tz,ty-.3,ty+.3)){doCrash(SP.heli?'Rotor strike on a building':'Wing clipped a building');return}}
+  if(CITY.obsOn&&!P.crashed){axes();const x=P.pos.x,z=P.pos.z;
+    if(cityHit(x,z,bottom,P.pos.y+1)){doCrash(OCEAN.on?'Hit the ship':'Flew into a building');return}
+    const hs=SP.span*.45;for(const s of[-1,1]){const tx=x+_r.x*hs*s,ty=P.pos.y+_r.y*hs*s,tz=z+_r.z*hs*s;if(cityHit(tx,tz,ty-.3,ty+.3)){doCrash(SP.heli?'Rotor strike':OCEAN.on?'Wing clipped the ship':'Wing clipped a building');return}}
     const rf=cityRoofAt(x,z,bottom);if(rf>surf+.5){surf=rf;water=false;onRoof=true}}
-  if(bottom>surf+.001){P.onGround=false;return}
+  if(P.trap&&onRoof&&bottom>surf){P.pos.y=surf+(P.gearT>=.99?GEAR:GEAR*.55);if(P.vel.y>0)P.vel.y=0}   // the hook holds you on the deck
+  if(bottom>surf+.001&&!(P.trap&&onRoof)){P.onGround=false;return}
   if(SP.heli){heliGround(dt,water,surf);return}
   const vs=P.vel.y;
   _E.setFromQuaternion(P.q,'YXZ');
@@ -1528,13 +1606,17 @@ function ground(dt){
   let crash=null;
   if(water&&(hspd>6||vs<-2))crash='Ditched in the water';
   else if(P.gearT<.99&&hspd>3)crash='Gear-up landing — scraped in on the belly';
-  else if(vs<-SP.vsLim)crash='Hard impact — '+Math.round(-vs*196.85)+' ft/min';
+  else if(vs<-(OCEAN.on&&onRoof?Math.max(SP.vsLim,6.5):SP.vsLim))crash='Hard impact — '+Math.round(-vs*196.85)+' ft/min';
   else if(Math.abs(_E.z)>.42)crash='Wingtip strike';
   else if(_E.x<-.14)crash='Prop strike — nose-in';
   else if(slopeAt(P.pos.x,P.pos.z)>.22&&hspd>6)crash='Collided with terrain';
   else if(!onRunway(P.pos.x,P.pos.z)&&!nearAirport(P.pos.x,P.pos.z,1)&&hspd>32)crash='Rough field at high speed';
-  if(crash&&onRoof&&!/Hard|Gear/.test(crash))crash='Crashed onto a rooftop';
+  if(crash&&onRoof&&!/Hard|Gear/.test(crash))crash=OCEAN.on?'Crashed on the flight deck':'Crashed onto a rooftop';
   if(crash){doCrash(crash);return}
+  const car=OCEAN.on&&onRoof?carrierAt(P.pos.x,P.pos.z):null,firstTouch=!P.onGround;
+  if(car&&firstTouch&&!P.cat&&P.gearT>=.99&&P.airTime>1){const a=airports.find(q=>q.carrier===car),[lx,lz]=aptLocal(a,P.pos.x,P.pos.z),fromAft=a.len/2-lz;
+    if(Math.abs(lx)<14&&fromAft>30&&fromAft<92){P.trap={wire:Math.min(4,1+Math.floor((fromAft-30)/14))};beep(140,.35,'sawtooth',.2);showMsg('TRAP! '+P.trap.wire+'-WIRE',P.trap.wire===3?'Perfect — the target wire':'Caught the '+P.trap.wire+'-wire','#7dffb0',3500)}
+    else showMsg('BOLTER','Missed the wires — full power and go around!','#ff9a5a',3000)}
   if(!P.onGround){
     if(mode==='landing')landTouch(vs);
     else if(P.airTime>3&&landMsgCooldown<=0){
@@ -1559,6 +1641,8 @@ function ground(dt){
   let v=P.vel.x*fx+P.vel.z*fz,lt=P.vel.x*rx+P.vel.z*rz;
   const dec=(.02+(P.brake?.5:0))*GR*dt,ldec=.8*GR*dt; // rolling/brake friction + tyre side grip
   v=Math.abs(v)<=dec?0:v-Math.sign(v)*dec;
+  if(P.trap){v=Math.max(0,v-30*dt);if(v<.5&&!P.trap.hold){P.trap.hold=1;showMsg('ARRESTED','Throttle back to release the wire','#7dffb0',3000)}if(P.trap.hold){v=0;if(P.throttle<.25)P.trap=null}}
+  if(P.cat){if(P.throttle>.85){v+=42*dt;if(!P.cat.go){P.cat.go=1;beep(70,1.2,'sawtooth',.25);showMsg('CATAPULT LAUNCH','','#ffd27a',1500)}}else v=0;if(v>=P.cat.vs)P.cat=null}
   lt=Math.abs(lt)<=ldec?0:lt-Math.sign(lt)*ldec;
   P.vel.x=fx*v+rx*lt;P.vel.z=fz*v+rz*lt;
 }
@@ -1591,6 +1675,9 @@ function buildRings(){
   if(ringGroup)scene.remove(ringGroup);ringGroup=new THREE.Group();scene.add(ringGroup);rings=[];
   const r=mulberry(Math.floor(Math.random()*1e9));
   const sc=Math.max(1,SP.cruise/60),gap=520*Math.min(sc,2.2),RR=17*Math.sqrt(sc);
+  if(MAP==='ocean'){const pts=[[0,60,1500],[-110,28,300,'s'],[-140,32,-400],[600,90,-1400],[1700,380,-2350],[2700,640,-2200],[3500,220,-900],[2900,120,800],[1950,34,2050],[1920,30,2700,'s'],[800,140,3500],[-1400,90,3000],[-2600,90,2300],[-1500,50,900]];
+    pts.forEach((p,i)=>{const a=pts[Math.max(i-1,0)],b=pts[Math.min(i+1,pts.length-1)];const hh=Math.atan2(b[0]-a[0],-(b[2]-a[2]));const rr=p[3]?Math.min(RR,16):RR,m=new THREE.Mesh(new THREE.TorusGeometry(rr,1.3*Math.sqrt(sc),8,32),ringMat);m.position.set(p[0],p[1],p[2]);m.rotation.y=Math.PI-hh;ringGroup.add(m);rings.push({m,c:new V3(p[0],p[1],p[2]),n:new V3(Math.sin(hh),0,-Math.cos(hh)),r:rr,done:false})});
+    ringIdx=0;ringDone=false;ringT0=performance.now();rings[0].m.material=ringMatNext;return}
   if(MAP==='city'){const rz=CITY.rz,pts=[[-3000,70,rz(-3000)],[-1700,13,rz(-1700),'u'],[-750,55,rz(-750)],[0,95,560],[0,150,-300,'t'],[0,175,-1250],[480,90,-1950],[1500,150,-1100],[1250,45,rz(1250)],[1900,13,rz(1900),'u'],[2900,70,rz(2900)],[1400,45,2050]];
     pts.forEach((p,i)=>{const a=pts[Math.max(i-1,0)],b=pts[Math.min(i+1,pts.length-1)];let dx=b[0]-a[0],dz=b[2]-a[2];if(p[3]==='u'){dx=1;dz=CITY.drz(p[0])}const hh=Math.atan2(dx,-dz);
       const rr=p[3]==='t'?Math.min(RR,14):p[3]==='u'?Math.min(RR,15):RR,m=new THREE.Mesh(new THREE.TorusGeometry(rr,1.3*Math.sqrt(sc),8,32),ringMat);m.position.set(p[0],p[1],p[2]);m.rotation.y=Math.PI-hh;ringGroup.add(m);
@@ -1618,7 +1705,7 @@ function checkRings(){
   const d0=_tmp.copy(prevPos).sub(R.c).dot(R.n),rel=P.pos.clone().sub(R.c),d1=rel.dot(R.n);
   if(d0<0&&d1>=0){const lat=rel.addScaledVector(R.n,-d1).length();
     if(lat<R.r){R.done=true;R.m.visible=false;ringIdx++;beep(880,.12,'triangle',.18);setTimeout(()=>beep(1320,.12,'triangle',.18),90);
-      if(ringIdx>=rings.length){ringDone=true;const t=(performance.now()-ringT0)/1000;const key='skyward_rings_'+SP.id+(MAP==='canyon'?'_c':MAP==='alpine'?'_a':MAP==='city'?'_city':'');const best=parseFloat(lsGet(key));
+      if(ringIdx>=rings.length){ringDone=true;const t=(performance.now()-ringT0)/1000;const key='skyward_rings_'+SP.id+(MAP==='canyon'?'_c':MAP==='alpine'?'_a':MAP==='city'?'_city':MAP==='ocean'?'_ocean':'');const best=parseFloat(lsGet(key));
         const nb=!best||t<best;if(nb)lsSet(key,t.toFixed(2));
         showMsg('COURSE COMPLETE',t.toFixed(2)+' s'+(nb?' · NEW BEST!':' · best '+best.toFixed(2)+' s'),'#ffd23a',6000);updateBest();}
       else rings[ringIdx].m.material=ringMatNext;}}
@@ -1626,13 +1713,13 @@ function checkRings(){
 
 /* ---------------- landing practice ---------------- */
 const LAND={apt:null,end:null,td:null,bounce:false,done:false,lastAir:0};
-function aptPick(forLanding){const v=$('selApt').value;let pool=forLanding?landable:airports;if(!SP.heli)pool=pool.filter(a=>!a.pad);const fit=pool.filter(a=>a.len>=(SP.jet?1300:0));if(fit.length)pool=fit;
+function aptPick(forLanding){const v=$('selApt').value;let pool=forLanding?landable:airports;if(!SP.heli)pool=pool.filter(a=>!a.pad);const fit=pool.filter(a=>a.carrier||a.len>=(SP.jet?1300:0));if(fit.length)pool=fit;
   if(v!=='random'){const a=airports[+v];if((!forLanding||a.ends.length)&&(SP.heli||!a.pad))return a}
   return pool[Math.floor(Math.random()*pool.length)];}
-function endPick(a,list){const ends=list||[{s:1,hdg:a.h1},{s:-1,hdg:(a.h1+180)%360}];
+function endPick(a,list){const ends=list||(a.oneway?[{s:1,hdg:a.h1}]:[{s:1,hdg:a.h1},{s:-1,hdg:(a.h1+180)%360}]);
   if(WIND.kind!=='calm'&&WIND.prefer!=null){let best=ends[0],bd=-9;for(const e of ends){const d=Math.cos((e.hdg-WIND.prefer)*DEG);if(d>bd){bd=d;best=e}}return best}
   return ends[Math.floor(Math.random()*ends.length)];}
-function placeOnRunway(a,s){const lz=a.pad?0:s*(a.len/2-45);const[x,z]=aptWorld(a,0,lz);P.pos.set(x,a.e+GEAR,z);const yaw=s===1?a.rot:a.rot+Math.PI;P.q.setFromEuler(new THREE.Euler(0,yaw,0,'YXZ'));P.vel.set(0,0,0)}
+function placeOnRunway(a,s){P.trap=null;P.cat=a.carrier&&!SP.heli?{vs:clamp(SP.stall*4.6,58,88)}:null;if(P.cat)setTimeout(()=>showMsg('ON THE CATAPULT','Full throttle to launch','#ffd27a',3500),50);const lz=a.pad?0:s*(a.len/2-45);const[x,z]=aptWorld(a,0,lz);P.pos.set(x,a.e+GEAR,z);const yaw=s===1?a.rot:a.rot+Math.PI;P.q.setFromEuler(new THREE.Euler(0,yaw,0,'YXZ'));P.vel.set(0,0,0)}
 function startLanding(sameAgain){
   let a,e;
   if(sameAgain&&LAND.apt){a=LAND.apt;e=LAND.end}
@@ -1718,12 +1805,12 @@ function drawILS(){
 /* ---------------- helicopter missions ---------------- */
 const MIS={on:false,stages:[],si:0,hold:0,t0:0,title:'',kind:'',n:0,score:0,crate:null,next:0,fail:0,grp:null,surv:[],base:null};
 const misPads=()=>airports.filter(a=>a.pad);
-const misSurf=(x,z,y)=>Math.max(groundAt(x,z),0,CITY.on?cityRoofAt(x,z,y-1):-1e9)+1;
+const misSurf=(x,z,y)=>Math.max(groundAt(x,z),0,CITY.obsOn?cityRoofAt(x,z,y-1):-1e9)+1;
 function misFlatSpot(R,minD,maxD,from){
   for(let k=0;k<4000;k++){const a=R()*Math.PI*2,d=minD+R()*(maxD-minD),x=from.x+Math.cos(a)*d,z=from.z+Math.sin(a)*d;
     if(Math.abs(x)>4300||Math.abs(z)>4300)continue;const g=groundAt(x,z);if(g<4)continue;if(nearAirport(x,z,80))continue;
     let ok=true;for(let i=0;i<8&&ok;i++){const q=i/8*Math.PI*2,sx=x+Math.cos(q)*14,sz=z+Math.sin(q)*14;if(Math.abs(groundAt(sx,sz)-g)>1.6||groundAt(sx,sz)<4)ok=false;
-      if(CITY.on&&(cityHit(x+Math.cos(q)*26,z+Math.sin(q)*26,g,g+60)||cityHit(sx,sz,g,g+60)))ok=false}
+      if(CITY.obsOn&&(cityHit(x+Math.cos(q)*26,z+Math.sin(q)*26,g,g+60)||cityHit(sx,sz,g,g+60)))ok=false}
     if(ok&&slopeAt(x,z)<.08)return{x,z,y:g,where:'ground'}}
   return null}
 function misRoofSpot(R,from){const c=CITY.blds.filter(b=>b.w>=26&&b.d>=26&&b.h>40&&b.h<170&&Math.hypot(b.x-from.x,b.z-from.z)>600);if(!c.length)return null;const b=c[Math.floor(R()*c.length)];return{x:b.x,z:b.z,y:CITY.FLAT+b.h,where:'roof'}}
@@ -1739,7 +1826,7 @@ function misNext(){if(MIS.grp)scene.remove(MIS.grp);MIS.grp=new THREE.Group();sc
   const R=mulberry(Math.floor(Math.random()*1e9)),here={x:P.pos.x,z:P.pos.z},pads=misPads();MIS.n++;MIS.si=0;MIS.hold=0;MIS.t0=performance.now();MIS.fail=0;
   const far=pads.filter(p=>Math.hypot(p.x-here.x,p.z-here.z)>400),pad=(far.length?far:pads)[Math.floor(R()*(far.length||pads.length))],padP=new V3(pad.x,pad.e,pad.z);
   const cargo=R()<.45;
-  if(!cargo){let s=CITY.on&&R()<.45?misRoofSpot(R,here):null;if(!s)s=misFlatSpot(R,900,3200,here)||misFlatSpot(R,300,4200,{x:0,z:0})||{x:pad.x+25,z:pad.z+25,y:groundAt(pad.x+25,pad.z+25),where:'ground'};
+  if(!cargo){let s=CITY.on&&R()<.45?misRoofSpot(R,here):null;if(!s)s=misFlatSpot(R,900,3200,here)||misFlatSpot(R,300,4200,{x:0,z:0})||(OCEAN.on?misFlatSpot(R,0,1100,{x:-2600,z:2300}):null)||{x:pad.x+25,z:pad.z+25,y:groundAt(pad.x+25,pad.z+25),where:'ground'};
     const who=s.where==='roof'?['Rooftop rescue','Workers trapped on a rooftop']:MAP==='alpine'?['Mountain rescue','Injured climbers on the slope']:MAP==='canyon'?['Canyon rescue','Hikers stranded in the canyon']:['Rescue','Stranded hikers need a lift'];
     MIS.kind='rescue';MIS.title=who[0];const p=new V3(s.x,s.y,s.z);
     MIS.stages=[{k:'land',p,r:s.where==='roof'?12:22,hold:3,txt:who[1]+' — land beside them',ok:'Survivors aboard!'},{k:'land',p:padP,r:14,hold:2,txt:'Fly them to the hospital pad at '+pad.name,ok:'Delivered to hospital'}];
@@ -1749,7 +1836,7 @@ function misNext(){if(MIS.grp)scene.remove(MIS.grp);MIS.grp=new THREE.Group();sc
       const arm=new THREE.Mesh(new THREE.BoxGeometry(.12,.75,.12),vest);arm.position.set(.36,1.75,0);g.add(arm);g.userData.arm=arm;MIS.grp.add(g);MIS.surv.push(g)}
     misBeacon(p,MIS.stages[0].r,0x3cff8a)}
   else{const src=R()<.5?pad:null;let a=src?(pad.roof?{x:pad.x+11,z:pad.z+11,y:pad.e}:{x:pad.x+18,z:pad.z+18,y:groundAt(pad.x+18,pad.z+18)}):misFlatSpot(R,700,2600,here);if(!a)a=misFlatSpot(R,300,4200,{x:0,z:0});
-    let b=misFlatSpot(R,1300,3400,a)||misFlatSpot(R,500,4200,{x:0,z:0})||{x:pad.x-30,z:pad.z-30,y:groundAt(pad.x-30,pad.z-30)};
+    let b=misFlatSpot(R,1300,3400,a)||misFlatSpot(R,500,4200,{x:0,z:0})||(OCEAN.on?misFlatSpot(R,0,1100,{x:-2600,z:2300}):null)||{x:pad.x-30,z:pad.z-30,y:groundAt(pad.x-30,pad.z-30)};
     const what=['Supply crate','Generator','Bridge girder','Water tank','Hay bales','Fuel pallet'][Math.floor(R()*6)];
     MIS.kind='cargo';MIS.title='Cargo lift — '+what;const pA=new V3(a.x,a.y,a.z),pB=new V3(b.x,b.y,b.z);
     MIS.stages=[{k:'hook',p:pA,r:10,txt:'Hover 6–20 m over the '+what.toLowerCase()+' to hook it'},{k:'drop',p:pB,r:22,txt:'Lower it gently into the marked zone',ok:'Load delivered!'}];
@@ -1773,7 +1860,7 @@ function updateMission(dt){if(!MIS.on||P.crashed)return;
       const dv=C.pos.clone().sub(H),L=dv.length();if(L>C.L){dv.multiplyScalar(1/L);C.pos.copy(H).addScaledVector(dv,C.L);const vr=C.vel.clone().sub(P.vel).dot(dv);
         if(vr>0){const f=vr/(mh+C.mass);C.vel.addScaledVector(dv,-vr*mh/(mh+C.mass));P.vel.addScaledVector(dv,f*C.mass)}}
       const g=misSurf(C.pos.x,C.pos.z,C.pos.y);if(C.pos.y<g){if(C.vel.y<-9)return misFailCargo('Dropped it too hard');C.pos.y=g;C.vel.y=Math.max(0,C.vel.y);C.vel.x*=.8;C.vel.z*=.8}
-      if(CITY.on&&cityHit(C.pos.x,C.pos.z,C.pos.y-1,C.pos.y+1))return misFailCargo('Smashed it into a building')}
+      if(CITY.obsOn&&cityHit(C.pos.x,C.pos.z,C.pos.y-1,C.pos.y+1))return misFailCargo('Smashed it into a building')}
     C.m.position.copy(C.pos);C.m.rotation.y+=(Math.atan2(_f.x,_f.z)-C.m.rotation.y)*dt;const rp=C.rope.geometry.attributes.position;rp.setXYZ(0,H.x,H.y,H.z);rp.setXYZ(1,C.pos.x,C.pos.y+1,C.pos.z);rp.needsUpdate=true}
   let info='';
   if(S.k==='land'){const ok=P.onGround&&d2<S.r&&P.vel.length()<1.5;MIS.hold=ok?MIS.hold+dt:0;if(ok)info=`Loading… ${Math.max(0,S.hold-MIS.hold).toFixed(1)} s`;
@@ -1876,7 +1963,7 @@ function updateBot(b,dt){const me=!P.crashed?P:null;b.think-=dt;
   b.model.g.position.copy(b.pos);for(const p of b.model.props)p.rotation.z+=.7;for(const r of(b.model.rotors||[]))r.p.rotation[r.axis]+=r.k*dt;for(const d of(b.model.rdiscs||[]))d.material.opacity=.12;
   for(const f of b.model.flames){f.visible=b.f.y>.1;f.scale.set(1,1,.8)}
   if(b.hp<45&&Math.random()<dt*14)dfSmoke(b.pos.clone().addScaledVector(b.f,-b.r*.5),1.4+Math.random(),2,0x2a2a2a);
-  if(b.pos.y<Math.max(groundAt(b.pos.x,b.pos.z),0)+2||CITY.on&&cityHit(b.pos.x,b.pos.z,b.pos.y-1,b.pos.y+1))dfKill(b,false)}
+  if(b.pos.y<Math.max(groundAt(b.pos.x,b.pos.z),0)+2||CITY.obsOn&&cityHit(b.pos.x,b.pos.z,b.pos.y-1,b.pos.y+1))dfKill(b,false)}
 function updateDogfight(dt){if(!DF.on)return;const now=performance.now()/1000;axes();
   if(DF.resp>0){DF.resp-=dt;if(DF.resp<=0){clearParts();P.crashed=false;hideMsg();dfStart(true);plane.g.visible=true}}
   for(const b of DF.bots)if(b.alive)updateBot(b,dt);
@@ -1891,7 +1978,7 @@ function updateDogfight(dt){if(!DF.on)return;const now=performance.now()/1000;ax
   const pa=trGeo.attributes.position.array,ca=trGeo.attributes.color.array;let n=0;
   for(let i=DF.bul.length-1;i>=0;i--){const b=DF.bul[i],p0=b.p.clone();b.v.y-=9.81*dt;b.p.addScaledVector(b.v,dt);b.life-=dt;let dead=b.life<=0;
     if(!dead&&b.p.y<Math.max(groundAt(b.p.x,b.p.z),0)){dead=true;if(Math.random()<.3)dfSmoke(b.p,1.2,.8,0x8a7a60)}
-    if(!dead&&CITY.on&&cityHit(b.p.x,b.p.z,b.p.y-.5,b.p.y+.5))dead=true;
+    if(!dead&&CITY.obsOn&&cityHit(b.p.x,b.p.z,b.p.y-.5,b.p.y+.5))dead=true;
     if(!dead){const seg=_tmp.subVectors(b.p,p0),L=seg.length(),dir=seg.clone().multiplyScalar(1/L);
       const hits=b.enemy?(P.crashed?[]:[{me:true,pos:P.pos,r:Math.max(4,SP.span*.5)}]):T;
       for(const t of hits){if(t===b.owner)continue;const w=t.pos.clone().sub(p0),s=clamp(w.dot(dir),0,L),cp=p0.clone().addScaledVector(dir,s);
@@ -1963,6 +2050,7 @@ function startMode(m){
     if(m==='air')showMsg(MAP==='canyon'?'CANYON RUN':'ALPINE VALLEY',MAP==='canyon'?'Stay below the rim if you dare':'Snow above, forest below','#ffd27a',3000);}
   else{setWind(wk);let mg=0;for(let z=-500;z<=3600;z+=100)mg=Math.max(mg,groundAt(0,z));
     if(MAP==='city'){mg=0;if(m==='air')showMsg('METRO CITY','Thread the gap between the twin towers','#ffd27a',3500)}
+    if(MAP==='ocean'){mg=0;if(m==='air')showMsg('OCEAN FLEET','Carrier ahead · gear down, aim for the 3-wire','#ffd27a',3500)}
     P.pos.set(0,Math.max(SP.fighter?1500:SP.jet?900:460,mg+260),MAP==='city'?4000:3400);if(MAP==='city'&&!SP.fighter)P.pos.y=SP.heli?260:SP.jet?600:480;P.q.identity();P.vel.set(0,0,-SP.cruise*.95);P.throttle=.7;P.spool=SP.ab?.49:.7;if(SP.retract)P.gear=P.gearT=0;P.onGround=false;P.rpm=.75;P.airTime=10;}
   if(SP.heli&&(m==='air'||m==='rings')){P.throttle=P.spool=SP.hov+.01;P.rpm=1;P.vel.multiplyScalar(.85)}
   if(m==='rings')buildRings();
@@ -2100,6 +2188,7 @@ const mapImg=document.createElement('canvas');mapImg.width=mapImg.height=190;con
   const sh=clamp((groundAt(wx-30,wz-30)-h)*.6,-30,30);im.data[i]=c[0]-sh;im.data[i+1]=c[1]-sh;im.data[i+2]=c[2]-sh;im.data[i+3]=235;}
  g.putImageData(im,0,0);
  if(CITY.on){g.fillStyle='rgba(40,44,52,.8)';for(const b of CITY.blds)g.fillRect((b.x-b.w/2+HALF)/WORLD*190,(b.z-b.d/2+HALF)/WORLD*190,Math.max(.6,b.w/WORLD*190),Math.max(.6,b.d/WORLD*190));g.fillStyle='#ffd27a';for(const[x,z]of CITY.twins){g.beginPath();g.arc((x+HALF)/WORLD*190,(z+HALF)/WORLD*190,1.6,0,7);g.fill()}}
+ if(OCEAN.on){g.fillStyle='#d8dde2';for(const c of OCEAN.carriers)g.fillRect((c.x-30+HALF)/WORLD*190,(c.z-170+HALF)/WORLD*190,Math.max(2,70/WORLD*190),340/WORLD*190);for(const[x,z]of OCEAN.ships)g.fillRect((x-8+HALF)/WORLD*190,(z-70+HALF)/WORLD*190,1.2,2.4)}
  mapBase.getContext('2d').drawImage(mapImg,0,0);
  const named=new Set();
  for(const a of airports){const mx=(a.x+HALF)/WORLD*190,mz=(a.z+HALF)/WORLD*190;g.save();g.translate(mx,mz);g.rotate(-a.rot);g.fillStyle='#fff';g.fillRect(-1.5,-a.len/WORLD*95,3,a.len/WORLD*190);g.restore();
@@ -2210,7 +2299,7 @@ function updateVisuals(dt){
     if(c.kind==='flap')a=fa*c.sgn;else if(c.kind==='ail')a=c.sgn*(-c.side*IN.roll)*k.ail;else if(c.kind==='flaperon')a=c.sgn*(fa*.7-c.side*IN.roll*k.ail);
     else if(c.kind==='elev')a=c.sgn*(-IN.pitch)*k.elev;else if(c.kind==='stab')a=-IN.pitch*k.elev+c.side*IN.roll*.12;else if(c.kind==='rud')a=IN.yaw*k.rud;
     c.p.rotation.x=(c.p.userData.base||0)+a}}
-  const tt=performance.now()/1000;if(CITYM)for(const b of CITYM.beacons)b.visible=(tt%1.5)<.75;for(const b of plane.beacons)b.visible=(tt%1.3)<.18;for(const st of plane.strobes)st.visible=(tt%1.6)<.05||((tt%1.6)>.16&&(tt%1.6)<.21);
+  const tt=performance.now()/1000;if(CITYM)for(const b of CITYM.beacons)b.visible=(tt%1.5)<.75;if(OCM)OCM.spin.forEach((s,i)=>i%2?s.visible=(tt%1.4)<.7:s.rotation.y=tt*1.6);for(const b of plane.beacons)b.visible=(tt%1.3)<.18;for(const st of plane.strobes)st.visible=(tt%1.6)<.05||((tt%1.6)>.16&&(tt%1.6)<.21);
   updateTrails();
   const gh=Math.max(groundAt(P.pos.x,P.pos.z),0),agl=P.pos.y-gh;
   shadow.visible=agl>6&&agl<250&&!P.crashed;shadow.position.set(P.pos.x,gh+.25,P.pos.z);shadow.material.opacity=.3*smooth(6,22,agl)*(1-agl/250);
