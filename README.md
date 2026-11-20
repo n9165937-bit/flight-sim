@@ -1,14 +1,16 @@
 # Skyward — Flight Simulator
 
-A browser flight sim with 8 airplanes (Skylark trainer, Vortex aerobatic, Kestrel twin, Meridian jet, PC-12, F-16, F/A-18, F-22) and 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), five maps (Green Valley, Red Rock Canyon, Alpine Peaks, Metro City, Ocean Fleet) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
+A browser flight sim with airplanes from trainers to fighters (Skylark, Vortex, Kestrel, Meridian, PC-12, F-16, F/A-18, F-22, A-10, F-15E, F-35B, B-2, AC-130J), 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), six maps (Green Valley, Red Rock Canyon, Alpine Peaks, Metro City, Ocean Fleet, Desert Base) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
 
 **Play:** https://n9165937-bit.github.io/flight-sim/
 
 ## Multiplayer
 Open the game, type a pilot name in the menu, and fly. Everyone on the same map sees each other's planes with name tags. Positions are shared through a free public relay (HiveMQ), so there's nothing to set up — just send friends the link.
+Want your own server with a kills/deaths leaderboard? See [server/README.md](server/README.md) (free Cloudflare Worker, about 5 minutes).
 
 ## Controls
-W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopters) · F/V flaps · G gear · B brakes · K Cobra (fighters) · C camera · R reset · Esc menu
+W/S pitch · A/D roll · Q/E rudder · Shift/Ctrl throttle (collective in helicopters) · F/V flaps · G gear · B brakes · K Cobra (fighters) · C camera · R reset · Esc menu
+Combat: Space guns · X missile · J bomb · L flares · N night vision · O O eject · Y F-35 hover · T AC-130 gunship orbit
 
 ## Weather & settings
 - Weather (Clear, Overcast, Rain, Snow, Fog) and time of day (Day, Dawn, Sunset, Night) are separate, so you can mix them — e.g. rain at sunset or fog at night. Change either any time from the pause menu.
@@ -63,3 +65,28 @@ W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopte
   - Tail: pitch and yaw go wild (helicopters spin).
   - Engine: fire, smoke and most thrust gone.
 - AI planes that lose a wing or tail spiral in — you get the kill. Other players see your missing parts.
+
+## Sound
+- Guns, missile launches and explosions are positional: volume drops with distance, far-off blasts sound muffled, they pan left/right, and the boom arrives late (sound travels at 343 m/s).
+- Missiles hiss as they fly past you. The nearest other aircraft roars louder as it passes, with Doppler pitch.
+- Every aircraft has its own engine sound: afterburner rumble, the A-10's turbine whine, the Chinook's slow heavy thump.
+
+## Combat extras
+- **Damage diagram** (top left in combat): each wing, the tail and the engine turn yellow then red as they take hits, and flash once they're gone.
+- **Eject**: press O twice (or EJECT twice on touch). Your seat fires, the chute opens, and the jet spins in on fire. Shot-down planes now fall burning instead of vanishing — and so do the AI's, with a parachute.
+- **Repair & rearm**: stop on any runway, carrier deck or helipad for 4 seconds — lost parts come back, weapons reload, tanks fill.
+- **Wingmen** (menu: 0–2): fly in formation off your wing, then go after enemy fighters or strafe ground targets in Strike.
+- **Fuel**: burns in Dogfight and Strike (afterburner drinks it). Land to refuel or use the tanker.
+
+## Air refueling
+- New mode **Air Refueling**: start low on fuel behind a big tanker. Slide up under the boom, follow the FWD/UP/LEFT cues, hold steady and the boom connects. Fill up as fast as you can — your best time is saved.
+- In Dogfight and Strike the tanker flies a racetrack over the map (blue TANKER marker) for jets that need fuel.
+
+## New aircraft
+- **F-35B Lightning II**: stealth fighter. Press **Y** below 185 kt to swing the nozzle down and hover like a helicopter; Y again to fly wing-borne.
+- **B-2 Spirit**: 52 m flying wing with 16 bombs and no guns.
+- **AC-130J Ghostrider**: four-prop gunship. Press **T** for a gunship orbit — it flies a left-hand circle on its own while you aim the side guns through a thermal camera: Space = 30 mm, X = 105 mm.
+- The jets' ailerons, flaps, stabilators and rudders now move with your controls.
+
+## Desert Base
+- Sahra Air Base with two runways and hardened aircraft shelters, dune fields, an oasis, and a mesa to the north cut by a winding canyon — the Ring Course runs through it.

@@ -1,4 +1,5 @@
-// Skyward multiplayer — shares every pilot's plane through a free public MQTT relay (no account needed).
+// Skyward multiplayer — shares every pilot's plane through a free public MQTT relay (no account needed),
+// or through your own Skyward server (see server/README.md) when one is set: ?server=wss://… or window.SKYWARD_SERVER.
 // Players on the same map see each other. Loaded after the main game script.
 (function () {
   'use strict';
@@ -32,13 +33,45 @@
     badge.style.color = client && client.connected ? '#7dffb0' : '#ffcf4a';
   };
 
-  if (!window.mqtt) { badge.textContent = 'Multiplayer unavailable'; return; }
+  // ---- transport: your own Skyward server (server/ folder, Cloudflare Worker) if one is set, otherwise the public MQTT relay ----
+  const qs = new URLSearchParams(location.search);
+  if (qs.has('server')) localStorage.setItem('sky_server', qs.get('server').trim());
+  const SERVER = (localStorage.getItem('sky_server') || window.SKYWARD_SERVER || '').trim();
+  function wsClient(url) {
+    const handlers = {}, c = { connected: false, on(ev, f) { (handlers[ev] = handlers[ev] || []).push(f); return c; } };
+    const emit = (ev, ...a) => (handlers[ev] || []).forEach(f => { try { f(...a); } catch (e) {} });
+    let ws = null;
+    const open = () => {
+      try { ws = new WebSocket(url.replace(/^http/, 'ws').replace(/\/$/, '') + '/room/' + encodeURIComponent(MAP) + '?id=' + myId); } catch (e) { setTimeout(open, 3000); return; }
+      ws.onopen = () => { c.connected = true; emit('connect'); };
+      ws.onclose = () => { c.connected = false; emit('close'); setTimeout(open, 3000); };
+      ws.onerror = () => emit('error');
+      ws.onmessage = ev => { let d; try { d = JSON.parse(ev.data); } catch (e) { return; } if (d && typeof d.t === 'string') emit('message', d.t, d.m || ''); else if (d && d.board) emit('board', d.board); };
+    };
+    c.publish = (topic, payload) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: topic, m: String(payload) })); };
+    c.send = o => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
+    c.subscribe = () => {}; c.end = () => { try { ws.close(); } catch (e) {} };
+    open(); return c;
+  }
+  if (!SERVER && !window.mqtt) { badge.textContent = 'Multiplayer unavailable'; return; }
 
   const others = {};
-  const client = mqtt.connect(BROKER, {
+  const client = SERVER ? wsClient(SERVER) : mqtt.connect(BROKER, {
     clientId: 'sky_' + myId, clean: true, keepalive: 20, reconnectPeriod: 3000, connectTimeout: 8000,
     will: { topic: BASE + myId, payload: '', qos: 0, retain: false }
   });
+  // ---- leaderboard (own server only): kills and deaths per pilot name, shown in the menu ----
+  if (SERVER) {
+    const lb = document.createElement('div');
+    lb.style.cssText = 'margin-top:10px;padding:8px 12px;border-radius:10px;background:rgba(8,18,28,.55);border:1px solid rgba(160,220,255,.2);font:600 13px Rajdhani,sans-serif;color:#cfe6f7;max-width:340px';
+    lb.innerHTML = '<b style="letter-spacing:2px;color:#ffd27a">LEADERBOARD</b><div>loading…</div>';
+    if (opts && opts.parentNode) opts.parentNode.appendChild(lb);
+    const show = rows => { lb.lastChild.innerHTML = rows.length ? rows.slice(0, 10).map((r, i) => `${i + 1}. <b>${String(r.n).replace(/[<>&]/g, '')}</b> — ${r.k} kills · ${r.d} deaths`).join('<br>') : 'No kills yet — be the first'; };
+    client.on('board', show);
+    const pull = () => fetch(SERVER.replace(/^ws/, 'http').replace(/\/$/, '') + '/leaderboard').then(r => r.json()).then(show).catch(() => {});
+    pull(); setInterval(() => { if (state !== 'play') pull(); }, 30000);
+    window.MP_SCORE = (k, d) => client.send && client.send({ score: { n: myName, k, d } });
+  }
   client.on('connect', () => { client.subscribe(BASE + '+'); setBadge(); });
   client.on('close', setBadge); client.on('offline', setBadge); client.on('error', setBadge);
 
@@ -66,6 +99,7 @@
   // ---- receive ----
   const num = v => (typeof v === 'number' && isFinite(v)) ? v : 0;
   client.on('message', (topic, msg) => {
+    if (topic === '__left') { removeOther(String(msg)); return; }
     const id = topic.slice(BASE.length);
     if (!id || id === myId) return;
     if (id === 'evt') { onEvent(msg); return; }
@@ -138,13 +172,14 @@
       const V = THREE.Vector3; dfFireMissile(new V(num(e.p[0]), num(e.p[1]), num(e.p[2])), new V(num(e.v[0]), num(e.v[1]), num(e.v[2])), new V(num(e.d[0]), num(e.d[1]), num(e.d[2])).normalize(), 'me', { name: fn }, true);
       DF.msl[DF.msl.length - 1].from = e.from; showMsg('MISSILE LAUNCH', fn + ' fired at you · turn hard / flares (L)', '#ff4040', 2500);
     }
-    else if (e.t === 'kill') { if (DF.on) dfFeed(String(e.k).slice(0, 14) + ' ✈ ' + String(e.v).slice(0, 14)); if (e.kid === myId && DF.on) { DF.k++; showMsg('SPLASH ONE', String(e.v).slice(0, 14) + ' shot down · ' + DF.k + ' kills', '#ffd27a', 2200); } }
+    else if (e.t === 'kill') { if (DF.on) dfFeed(String(e.k).slice(0, 14) + ' ✈ ' + String(e.v).slice(0, 14)); if (e.kid === myId && DF.on) { DF.k++; showMsg('SPLASH ONE', String(e.v).slice(0, 14) + ' shot down · ' + DF.k + ' kills', '#ffd27a', 2200); if (window.MP_SCORE) MP_SCORE(1, 0); } }
   }
   window.MP = {
     name: () => myName,
     send: e => { if (client.connected) client.publish(BASE + 'evt', JSON.stringify(Object.assign({ from: myId, fn: myName }, e))); },
     targets: () => Object.entries(others).filter(([, o]) => o.df && o.tPos).map(([id, o]) => o.tgt || (o.tgt = { id, isPlayer: true, get name() { return o.name; }, get pos() { return o.model.g.position; }, get vel() { return o.tVel; }, get hp() { return o.hp; }, get q() { return o.model.g.quaternion; }, r: Math.max(5, SPECS[o.type].span * .55), alive: true })),
-    firing: () => Object.values(others).filter(o => o.df && o.fire).map(o => ({ pos: o.model.g.position, f: new THREE.Vector3(0, 0, -1).applyQuaternion(o.model.g.quaternion) }))
+    planes: () => Object.values(others).filter(o => o.model && o.tVel).map(o => ({ pos: o.model.g.position, vel: o.tVel, type: o.type })),
+    firing: () => Object.values(others).filter(o => o.df && o.fire).map(o => ({ pos: o.model.g.position, type: o.type, f: new THREE.Vector3(0, 0, -1).applyQuaternion(o.model.g.quaternion) }))
   };
   setInterval(setBadge, 2000); setBadge();
 })();
