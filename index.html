@@ -2335,6 +2335,7 @@ function updateDogfight(dt){if(!DF.on)return;const now=performance.now()/1000;ax
   // missiles
   DF.warn=Math.max(0,DF.warn-dt);
   for(let i=DF.msl.length-1;i>=0;i--){const m=DF.msl[i];m.life-=dt;let tp=null,tv=null;
+    if(m.tgt==='me'&&m.sam&&samEnv()!=='in'){m.tgt=null;showMsg('SAM LOST LOCK',samEnv()==='low'?'Below 500 ft — the radar can\'t see you':'Above 8,000 ft AGL — out of the radar\'s reach','#7dffb0',2000)}
     if(m.tgt==='me'){if(!P.crashed){tp=P.pos;tv=P.vel;DF.warn=.3}}else if(m.tgt&&m.tgt.flare){tp=m.tgt.flare.p;tv=m.tgt.flare.v}else if(m.tgt&&(m.tgt.alive!==false)){tp=m.tgt.pos;tv=m.tgt.vel}
     const sp=m.v.length(),acc=Math.min(620,sp+dt*(m.life>6.5?260:0));
     if(tp){const los=tp.clone().sub(m.p),d=los.length(),tgo=d/Math.max(sp,1),aim=tp.clone().addScaledVector(tv,tgo*.9).sub(m.p).normalize(),cur=m.v.clone().normalize(),ang=dfAngle(cur,aim),mx=(30*9.81/Math.max(sp,1))*dt;
@@ -2415,6 +2416,7 @@ function stKill(u,byMe){if(!u.alive)return;u.alive=false;dfBoom(u.pos.clone().se
   if(ST.units.every(x=>!x.alive)){const t=(performance.now()-ST.t0)/1000,bonus=Math.max(0,Math.round(1200-t*4));ST.score+=bonus;
     const key='skyward_strike_'+SP.id+'_'+MAP,best=+lsGet(key)||0;if(ST.score>best)lsSet(key,ST.score);
     showMsg('TARGETS DESTROYED',`${ST.kind} cleared in ${t.toFixed(0)} s · +${bonus} time bonus · score ${ST.score}${ST.score>best?' · NEW BEST':''}`,'#7dffb0',5500);ST.next=6}}
+function samEnv(){const aglFt=(P.pos.y-Math.max(groundAt(P.pos.x,P.pos.z),0))*3.281;return aglFt>8000?'high':aglFt<500?'low':'in'}   // SAM radar envelope: 500–8,000 ft AGL
 function stHit(u,dmg){if(!u.alive)return;u.hp-=dmg;if(u.hp<=0)stKill(u,true)}
 function updateStrike(dt){if(!ST.on)return;const now=performance.now()/1000;
   if(ST.next>0){ST.next-=dt;if(ST.next<=0)stNext(false);return}
@@ -2428,12 +2430,13 @@ function updateStrike(dt){if(!ST.on)return;const now=performance.now()/1000;
       if(u.tur){u.tur.rotation.y=Math.atan2(-aim.x,-aim.z)-u.G.rotation.y}
       u.fireT-=dt;if(d<2300){if(u.fireT<=0){u.burst=1.4;u.fireT=3+Math.random()*2}if(u.burst>0){u.burst-=dt;u.gT=(u.gT||0)-dt;if(u.gT<=0){u.gT=1/9;dfShoot(u.pos.clone().setY(u.pos.y+2.5),aim,_tmp.set(0,0,0),{name:'AAA'},2.4,1.7,true);if(Math.random()<.3)beep(220,.03,'square',.02*Math.min(1,800/d))}}}}
     if(u.type==='sam'){u.fireT-=dt;if(u.tur)u.tur.rotation.y=Math.atan2(-to.x,-to.z)-u.G.rotation.y;
-      if(radarUp&&u.fireT<=0&&d>900&&d<7000&&agl>110&&DF.msl.filter(m=>m.tgt==='me').length<2){u.fireT=9+Math.random()*5;
-        dfFireMissile(u.pos.clone().setY(u.pos.y+3),new V3(0,40,0),to.clone().normalize().add(_tmp.set(0,.8,0)).normalize(),'me',{name:'SAM'},true);showMsg('SAM LAUNCH','Break hard, drop flares (L) — or get low','#ff4040',2500)}}}
+      if(radarUp&&u.fireT<=0&&d>900&&d<7000&&samEnv()==='in'&&DF.msl.filter(m=>m.tgt==='me').length<2){u.fireT=9+Math.random()*5;
+        dfFireMissile(u.pos.clone().setY(u.pos.y+3),new V3(0,40,0),to.clone().normalize().add(_tmp.set(0,.8,0)).normalize(),'me',{name:'SAM'},true);DF.msl[DF.msl.length-1].sam=true;showMsg('SAM LAUNCH','Break hard, flares (L) — or go below 500 / above 8,000 ft AGL','#ff4040',2500)}}}
   // HUD line
   const left=ST.units.filter(u=>u.alive).length,dir=ST.area.clone().sub(P.pos),dist=Math.hypot(dir.x,dir.z);axes();
   const rel=Math.atan2(dir.x,-dir.z)-Math.atan2(_f.x,-_f.z);
-  ST.hud=`STRIKE ${ST.n} · ${ST.kind.toUpperCase()} · <b>${left}</b> TARGET${left===1?'':'S'} LEFT · <span style="display:inline-block;transform:rotate(${rel}rad)">▲</span> ${dist<1000?Math.round(dist)+' m':(dist/1000).toFixed(1)+' km'} · ${ST.score} pts`}
+  const samUp=radarUp&&ST.units.some(u=>u.alive&&u.type==='sam'&&u.pos.distanceTo(P.pos)<9000),env=samEnv(),rad=!samUp?'':env==='in'?' · <span style="color:#ff5a4a">SAM RADAR: TRACKING</span>':` · <span style="color:#7dffb0">SAM RADAR: ${env==='low'?'TOO LOW':'TOO HIGH'}</span>`;
+  ST.hud=`STRIKE ${ST.n} · ${ST.kind.toUpperCase()} · <b>${left}</b> TARGET${left===1?'':'S'} LEFT · <span style="display:inline-block;transform:rotate(${rel}rad)">▲</span> ${dist<1000?Math.round(dist)+' m':(dist/1000).toFixed(1)+' km'} · ${ST.score} pts${rad}`}
 // ---- bombs: J to drop. Laser-guided if you hold a lock on a ground target (F-15E / A-10 / F-16 / F/A-18) ----
 function dfBomb(){if(!DF.on||P.crashed)return;if(DF.bmbN<=0){showMsg('NO BOMBS',dfW(SP.id).bmb?'Out of bombs':'This aircraft has no bombs','#cfe6f7',1200);return}if(DF.bmbCD>0)return;
   DF.bmbN--;DF.bmbCD=.35;axes();const m=new THREE.Mesh(bombGeo,STD(0x55602f,.2,.6));const p=P.pos.clone().addScaledVector(_u,-1.6);m.position.copy(p);scene.add(m);

@@ -49,7 +49,7 @@ W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopte
 
 ## Strike Missions (ground attack)
 - New mode: destroy armor columns, SAM sites, supply depots and tank companies. Missions chain with increasing defenses.
-- AAA guns shoot back up close; SAM sites launch missiles when you're above ~110 m — fly low to stay under the radar, or use flares (L).
+- AAA guns shoot back up close; SAM radars can only lock you between 500 and 8,000 ft above the ground — go lower or higher and they can't fire, and missiles already in the air lose their lock. The HUD shows SAM RADAR: TRACKING / TOO LOW / TOO HIGH. Flares (L) also work.
 - Weapons: guns (SPACE), missiles (X, lock ground targets too), bombs (J). The yellow ring (CCIP) shows where a dumb bomb will land; with a lock, bombs are laser-guided.
 - Score per target + time bonus; best score saved per aircraft and map.
 
