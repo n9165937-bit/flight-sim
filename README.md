@@ -56,3 +56,10 @@ W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopte
 ## Real-scale jet models
 - The F-16, F/A-18, F-22, A-10 and F-15E use the real-scale models from the Hangar project (published length, span and height; FS595 paint schemes; panel lines; weapons on the pylons).
 - AI pilots, other players and parked jets use a lighter version of the same models; so does your own jet on Low graphics.
+
+## Location damage
+- In Dogfight and Strike, hits land on the part they strike. Enough damage and that part breaks off and falls away smoking:
+  - Wing: big roll toward the missing side and lost lift — fight it with the stick.
+  - Tail: pitch and yaw go wild (helicopters spin).
+  - Engine: fire, smoke and most thrust gone.
+- AI planes that lose a wing or tail spiral in — you get the kill. Other players see your missing parts.

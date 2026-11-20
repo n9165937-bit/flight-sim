@@ -1428,7 +1428,7 @@ function makePlane(id,lo){
 
   if(HG_MAP[id]){lo=lo||(typeof GFX!=='undefined'&&GFX.mode==='low');const H=hgGeometry(HG_MAP[id],lo),A=H.A;
     const paintM=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,map:hgPanelTex(),metalness:.28,roughness:.62});
-    const root=new THREE.Group();root.rotation.y=Math.PI;root.position.y=-H.axisY;g.add(root);
+    const root=new THREE.Group();root.userData.hgRoot=1;root.rotation.y=Math.PI;root.position.y=-H.axisY;g.add(root);
     for(const p of H.parts){if(p.grp==='stores'&&lo)continue;const m=new THREE.Mesh(p.geo,p.mat==='paint'?paintM:p.mat==='canopy'?hgMat(A.canopy):hgMat(p.mat));root.add(m);if(p.grp==='gear')gearParts.push(m)}
     for(const[x,y,z,r]of H.noz){const fg=new THREE.ConeGeometry(r*.85,r*9,14,1,true);fg.translate(0,r*4.5,0);fg.rotateX(-Math.PI/2);
       const fl=new THREE.Mesh(fg,new THREE.MeshBasicMaterial({color:0xff9a3a,transparent:true,opacity:.75,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));fl.position.set(x,y,z);fl.visible=false;root.add(fl);flames.push(fl);
@@ -1771,7 +1771,7 @@ function makePlane(id,lo){
     if(o.material.isMeshStandardMaterial&&!o.material.transparent&&!o.material.isMeshPhysicalMaterial)o.material.envMapIntensity=.8;
     if(!(o.material.transparent||o.material.isMeshBasicMaterial)){o.castShadow=true;o.receiveShadow=true}});
   const D=dummy();
-  return Object.assign({g,props,discs,gearParts,flames,cs,ailL:D,ailR:D,elev:D,rud:D},fx);
+  return classifyParts(Object.assign({g,props,discs,gearParts,flames,cs,ailL:D,ailR:D,elev:D,rud:D},fx),!!SPECS[id].jet);
 }
 
 if(OCEAN.parkTodo)for(const[G,id,x,z,r]of OCEAN.parkTodo){const m=makePlane(id,true);m.g.position.set(x,20+SPECS[id].gear,z);m.g.rotation.y=r;for(const q of m.pilotM)q.visible=false;G.add(m.g)}
@@ -1823,6 +1823,7 @@ function step(dt){
   if(Math.abs(aoa)<stallA)CL=cl0+SP.cla*aoa;
   else{const peak=cl0+SP.cla*stallA*Math.sign(aoa);CL=peak*Math.max(.72,1-(Math.abs(aoa)-stallA)*1.5)}
   if(Math.abs(aoa)>1.2)CL*=Math.max(0,(1.6-Math.abs(aoa))/.4);
+  const DL=P.dmg&&P.dmg.lost||{};if(DL.wingL||DL.wingR)CL*=1-.45*((DL.wingL?1:0)+(DL.wingR?1:0));
   P.stall=!P.onGround&&speed>5&&Math.abs(aoa)>stallA-.5*DEG&&!P.cobra;
   const stalled=Math.abs(aoa)>stallA;
   let CD=SP.cd0+SP.k*CL*CL+fl*SP.flapCD+(stalled?.06:0)+.25*Math.abs(Math.sin(beta));
@@ -1843,7 +1844,7 @@ function step(dt){
   if(SP.retract){const gs=dt/3;P.gearT=P.gear>P.gearT?Math.min(1,P.gearT+gs):Math.max(0,P.gearT-gs)}
   const thrust=SP.jet?P.spool*SP.maxT*Math.max(0,1-speed/(SP.vmaxJ||700))*Math.pow(rho/RHO0,.75)
                      :P.spool*SP.maxT*Math.max(0,1-speed/SP.vmax)*(rho/RHO0);
-  _F.addScaledVector(_f,thrust);
+  _F.addScaledVector(_f,thrust*(DL.engine?.12:1));
   // rotation + stability assist
   const eff=Math.min(1.4,speed/SP.effV);
   const bank=Math.atan2(-_r.y,_u.y);
@@ -1854,7 +1855,7 @@ function step(dt){
   const aoaTrim=(qd>50&&!P.onGround)?clamp((nT*M*GR/(qd*S)-cl0)/SP.cla,cb<0?-(stallA-3*DEG):-.06,stallA-3*DEG):.035;
   const tP=IN.pitch*SP.pitch*eff-(aoa-aoaTrim)*3*eff;
   const tR=IN.roll*SP.roll*eff-(Math.abs(IN.roll)<.1&&Math.abs(bank)<.8?bank*.2*eff:0)+IN.yaw*.22*eff;
-  const tY=P.onGround?0:IN.yaw*SP.yaw*eff+beta*2.2*eff;
+  let tY=P.onGround?0:IN.yaw*SP.yaw*eff+beta*2.2*eff;
   let tPf=tP,tRf=tR,k=Math.min(1,SP.resp*dt);
   if(!P.cobra&&!P.onGround){// stall protection: soft AoA limit, then g limit
     const gm=SP.gmax||4.5,qs=Math.max(qd*S,1);
@@ -1864,6 +1865,8 @@ function step(dt){
     if(c.ph===0){tPf=3.4;if(aoa>1.75||c.t>1.6){c.ph=1;c.t=0}}
     else if(c.ph===1){tPf=0;if(c.t>.8){c.ph=2;c.t=0}}
     else{tPf=-2.2;if(aoa<.25||c.t>3)P.cobra=null}}
+  if(DL.wingL||DL.wingR){tRf=tRf*.55+((DL.wingR?1:0)-(DL.wingL?1:0))*1.5*Math.min(1.2,eff+.3)}
+  if(DL.tail){const tt=performance.now()*.001;tPf=tPf*.25+Math.sin(tt*1.7)*.7+.25;tY=tY*.2+Math.sin(tt*1.1)*.5}
   P.w.x+=(tPf-P.w.x)*k;P.w.z+=(tRf-P.w.z)*k;P.w.y+=(tY-P.w.y)*k;
   if(stalled&&!P.onGround&&!P.cobra){P.w.z+=(Math.sin(performance.now()*.002)*.06*(1-eff/1.4))*dt*4}
   _tmp.set(P.w.x,-P.w.y,-P.w.z);const ang=_tmp.length();
@@ -1896,7 +1899,8 @@ function stepHeli(dt){
   // no roll lock: near-full stick blends into a pure rate command, so you can roll or loop all the way round
   const aR=smooth(.8,.97,Math.abs(IN.roll)),aP=IN.pitch>0?smooth(.8,.97,IN.pitch)*smooth(18,28,hs):0; // forward stick stays limited so holding it to go fast is safe; loops need full back stick above ~45 kt
   tR=lerp(tR,IN.roll*SP.roll*3.2,aR);tP=lerp(tP,IN.pitch*SP.pitch*2.4,aP);
-  let tY=IN.yaw*SP.yaw*1.4;if(hs>14)tY+=Math.sin(bank)*GR/Math.max(hs,14)*.9+beta*1.5*smooth(14,30,hs);
+  if(P.dmg&&P.dmg.lost.engine)P.throttle=Math.min(P.throttle,SP.hov*.8);
+  let tY=IN.yaw*SP.yaw*1.4;if(P.dmg&&P.dmg.lost.tail)tY=tY*.3+2.6;if(hs>14)tY+=Math.sin(bank)*GR/Math.max(hs,14)*.9+beta*1.5*smooth(14,30,hs);
   if(P.onGround){tP=0;tR=0;tY=0}
   const k=Math.min(1,SP.resp*dt);P.w.x+=(tP-P.w.x)*k;P.w.z+=(tR-P.w.z)*k;P.w.y+=(tY-P.w.y)*k;
   _tmp.set(P.w.x,-P.w.y,-P.w.z);const ang=_tmp.length();if(ang>1e-6){_dq.setFromAxisAngle(_tmp.divideScalar(ang),ang*dt);P.q.multiply(_dq).normalize()}
@@ -2212,6 +2216,34 @@ function updateMission(dt){if(!MIS.on||P.crashed)return;
   $('mission').innerHTML=`<div class="mt">MISSION ${MIS.n} · ${MIS.title.toUpperCase()}</div><div class="mo">${S.txt}</div><div class="mr"><span class="ma" style="transform:rotate(${rel}rad)">▲</span> ${dist<1000?Math.round(dist)+' m':(dist/1000).toFixed(1)+' km'} · ${Math.round(tgt.y*3.281)} ft · ${t.toFixed(0)} s · ${MIS.score} pts</div>${info?`<div class="mi">${info}</div>`:''}`}
 function misRetarget(){const S=MIS.stages[MIS.si];if(!S)return;if(MIS.grp){for(const c of[...MIS.grp.children])if(!MIS.surv.includes(c))MIS.grp.remove(c)}misBeacon(S.p,S.r,S.k==='drop'?0xffb43c:0x3cff8a)}
 
+/* ---------------- location damage: parts break off ---------------- */
+const PART_HP={wingL:45,wingR:45,tail:35,engine:40};
+const PART_NAME={wingL:'LEFT WING',wingR:'RIGHT WING',tail:'TAIL',engine:'ENGINE'};
+function partOf(lx,lz,box,jet){const u=(lz-box.z0)/Math.max(1,box.z1-box.z0),xn=Math.abs(lx)/Math.max(1,box.xh);
+  if(u>.8)return'tail';if(xn>.3&&u>.12&&u<=.8)return lx<0?'wingL':'wingR';if(jet?(u>.55&&xn<=.3):(u<.2))return'engine';return'body'}
+// sort a freshly built model into breakable parts (call with g at the origin, unrotated)
+function classifyParts(m,jet){const g=m.g;g.updateMatrixWorld(true);const units=[];
+  for(const c of g.children){if(c.isGroup&&c.userData.hgRoot){for(const k of c.children)units.push(k)}else units.push(c)}
+  const B=new THREE.Box3(),bb=new THREE.Box3(),cen=new V3();let first=true;
+  const info=units.map(u=>{bb.makeEmpty();u.traverse(o=>{if(o.isMesh&&o.geometry&&!(o.material&&o.material.blending===THREE.AdditiveBlending)){o.geometry.computeBoundingBox();const b=o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld);bb.union(b)}});
+    if(bb.isEmpty())return null;if(first){B.copy(bb);first=false}else B.union(bb);return{u,c:bb.getCenter(new V3())}});
+  m.box={z0:B.min.z,z1:B.max.z,xh:Math.max(Math.abs(B.min.x),Math.abs(B.max.x))};m.parts={wingL:[],wingR:[],tail:[],engine:[]};
+  for(const it of info){if(!it)continue;const p=partOf(it.c.x,it.c.z,m.box,jet);if(m.parts[p]&&p!=='engine')m.parts[p].push(it.u)}
+  return m}
+const DEB=[];
+function detachPart(model,part,vel){const list=model.parts&&model.parts[part];if(!list||!list.length)return;model.g.userData.broken=1;
+  model.g.updateMatrixWorld(true);const G=new THREE.Group(),c=new V3(),n=list.length;for(const u of list)c.add(u.getWorldPosition(new V3()));c.divideScalar(n);
+  G.position.copy(c);scene.add(G);for(const u of list)G.attach(u);model.parts[part]=[];
+  DEB.push({g:G,v:vel.clone().add(new V3((Math.random()-.5)*14,4+Math.random()*6,(Math.random()-.5)*14)),w:new V3((Math.random()-.5)*6,(Math.random()-.5)*6,(Math.random()-.5)*6),life:14,sm:0});
+  dfBoom(c,.6,14)}
+function updateDebris(dt){for(let i=DEB.length-1;i>=0;i--){const d=DEB[i];d.life-=dt;d.v.y-=9.81*dt;d.v.multiplyScalar(1-.25*dt);d.g.position.addScaledVector(d.v,dt);
+    d.g.rotation.x+=d.w.x*dt;d.g.rotation.y+=d.w.y*dt;d.g.rotation.z+=d.w.z*dt;d.sm-=dt;if(d.sm<=0&&d.life>8){d.sm=.07;dfSmoke(d.g.position,1.2+Math.random(),2,0x2a2a2a)}
+    if(d.g.position.y<Math.max(groundAt(d.g.position.x,d.g.position.z),0)+.5||d.life<=0){if(d.life>0)dfBoom(d.g.position,.5,10);scene.remove(d.g);DEB.splice(i,1)}}}
+function clearDebris(){for(const d of DEB)scene.remove(d.g);DEB.length=0}
+// hit point -> part damage. Returns the part name that broke (or null)
+function partDamage(D,lp,dmg,box,jet){const p=partOf(lp.x,lp.z,box,jet);if(p==='body'||D.lost[p])return null;D[p]=(D[p]||0)+dmg;if(D[p]>=PART_HP[p]){D.lost[p]=1;return p}return null}
+const newDmg=()=>({lost:{}});
+
 /* ---------------- dogfight (AI bots + PvP) ---------------- */
 const DF={bombs:[],bmbN:0,bmbCD:0,strike:false,on:false,hp:100,k:0,d:0,bots:[],bul:[],msl:[],flr:[],sm:[],tgt:null,lock:0,locked:null,gunT:0,mslN:0,flrN:0,mslCD:0,resp:0,feed:[],hitFx:0,warn:0,lockBeep:0,fireHeld:false,netFire:0};
 const MILW={a10:{gun:60,dmg:5,gnd:4,msl:6,bmb:6},f15e:{gun:20,dmg:4.5,msl:6,bmb:8},f16:{gun:22,dmg:4.5,msl:6,bmb:4},f18:{gun:20,dmg:4.5,msl:6,bmb:4},f22:{gun:22,dmg:4.5,msl:6,bmb:2},ah64:{gun:10,dmg:8,msl:4},uh60:{gun:16,dmg:3.5,msl:0},chinook:{gun:14,dmg:3.5,msl:0}};
@@ -2236,9 +2268,10 @@ function dfSpawnBot(i,near){const id=dfBotSpec(),sp=SPECS[id],model=makePlane(id
   const b={bot:true,id:'bot'+i+'_'+Math.random().toString(36).slice(2,6),name:BOTNAMES[(i+DF.k*3+DF.d)%BOTNAMES.length],type:id,model,pos,f,v,vmax:v,bank:0,hp:100,alive:true,ace,
     turn:(sp.heli?.75:sp.fighter?.42:.3)*(ace?1:.62),r:Math.max(7,sp.span*.7),gunT:0,mslN:ace&&MILW[id]&&MILW[id].msl?2:0,mslCD:12,think:0,jink:new V3(),get vel(){return this.f.clone().multiplyScalar(this.v)}};
   model.g.position.copy(pos);DF.bots.push(b);return b}
-function dfClear(){stClearUnits();ST.on=false;DF.strike=false;for(const b of DF.bombs)scene.remove(b.m);DF.bombs=[];for(const b of DF.bots)scene.remove(b.model.g);DF.bots=[];for(const m of DF.msl)scene.remove(m.m);DF.msl=[];DF.bul=[];for(const s of DF.sm)scene.remove(s.m);DF.sm=[];DF.flr.forEach(f=>scene.remove(f.m));DF.flr=[];
+function dfClear(){if(P.dmg&&Object.keys(P.dmg.lost).length)dfFresh();clearDebris();stClearUnits();ST.on=false;DF.strike=false;for(const b of DF.bombs)scene.remove(b.m);DF.bombs=[];for(const b of DF.bots)scene.remove(b.model.g);DF.bots=[];for(const m of DF.msl)scene.remove(m.m);DF.msl=[];DF.bul=[];for(const s of DF.sm)scene.remove(s.m);DF.sm=[];DF.flr.forEach(f=>scene.remove(f.m));DF.flr=[];
   DF.on=false;$('dfhud').classList.add('hidden');$('dfmk').innerHTML='';for(const n of['tfire','tmsl','tflr','tbmb'])$(n)&&$(n).classList.add('hidden')}
-function dfStart(keep,strike){if(!keep){dfClear();DF.k=0;DF.d=0;DF.feed=[]}DF.on=true;DF.hp=100;const w=dfW(SP.id);DF.mslN=w.msl;DF.flrN=w.msl||w.bmb?8:0;DF.bmbN=w.bmb;if(strike)DF.strike=true;DF.lock=0;DF.locked=null;DF.resp=0;
+function dfFresh(){P.dmg=newDmg();DF.lostMask=0;if(plane.g.userData.broken){scene.remove(plane.g);plane=makePlane(SP.id);scene.add(plane.g)}}
+function dfStart(keep,strike){dfFresh();if(!keep){dfClear();DF.k=0;DF.d=0;DF.feed=[]}DF.on=true;DF.hp=100;const w=dfW(SP.id);DF.mslN=w.msl;DF.flrN=w.msl||w.bmb?8:0;DF.bmbN=w.bmb;if(strike)DF.strike=true;DF.lock=0;DF.locked=null;DF.resp=0;
   $('dfhud').classList.remove('hidden');for(const n of['tfire','tmsl','tflr','tbmb'])$(n)&&$(n).classList.toggle('hidden',n==='tmsl'?!w.msl:n==='tflr'?!(w.msl||w.bmb):n==='tbmb'?!w.bmb:false);
   // spawn somewhere open, high enough
   const a=Math.random()*Math.PI*2,r=Math.random()*2500,x=Math.cos(a)*r,z=Math.sin(a)*r,hd=Math.random()*Math.PI*2;
@@ -2250,7 +2283,15 @@ function dfStart(keep,strike){if(!keep){dfClear();DF.k=0;DF.d=0;DF.feed=[]}DF.on
   const nb=+$('selBots').value.replace(/\D/g,'')||0;if(!keep){for(let i=0;i<nb;i++)dfSpawnBot(i)}
   showMsg('DOGFIGHT',nb?`${nb} ${$('selBots').value.includes('ace')?'ace':'rookie'} pilot${nb>1?'s':''} inbound · SPACE guns${w.msl?' · X missile · L flares':''}`:'Waiting for other pilots · SPACE guns','#ff6a5a',4000)}
 function dfFeed(t){DF.feed.unshift({t,ttl:6});DF.feed.length=Math.min(DF.feed.length,5)}
-function dfDamage(dmg,from){if(!DF.on||P.crashed)return;DF.hp-=dmg;DF.hitFx=1;beep(160,.05,'square',.06);if(DF.hp<=0){DF.hp=0;dfDie('Shot down by '+from,from)}}
+const _hq=new THREE.Quaternion();
+function toLocal(pt,pos,q){return pt.clone().sub(pos).applyQuaternion(_hq.copy(q).invert())}
+function dfDamage(dmg,from,lp){if(!DF.on||P.crashed)return;DF.hp-=dmg;DF.hitFx=1;beep(160,.05,'square',.06);
+  if(lp&&plane.box){if(!P.dmg)P.dmg=newDmg();const br=partDamage(P.dmg,lp,dmg,plane.box,!!SP.jet);
+    if(br){detachPart(plane,br,P.vel);beep(70,.6,'sawtooth',.25);showMsg(PART_NAME[br]+(br==='engine'?' ON FIRE':' GONE'),br==='engine'?'Engine out — most of your thrust is lost':br==='tail'?'No tail — pitch and yaw are going wild':'The jet will roll toward the missing wing — fight it with the stick','#ff5a3a',3000);DF.lostMask=(DF.lostMask||0)|({wingL:1,wingR:2,tail:4,engine:8}[br])}}
+  if(DF.hp<=0){DF.hp=0;dfDie('Shot down by '+from,from)}}
+// AI plane part hit
+function botPartHit(t,pt,dmg,byMe){if(!t.model.box)return;if(!t.dmg)t.dmg=newDmg();if(byMe)t.lastHit='me';const br=partDamage(t.dmg,toLocal(pt,t.pos,t.model.g.quaternion),dmg,t.model.box,!!SPECS[t.type].jet);
+  if(br){detachPart(t.model,br,t.vel);if(br==='engine')t.vmax*=.55;else{t.turn*=.4;t.spin=br==='wingL'?-1:br==='wingR'?1:(Math.random()<.5?-1:1)}if(byMe)dfFeed(t.name+' lost its '+PART_NAME[br].toLowerCase())}}
 function dfDie(reason,killer){P.crashed=true;DF.d++;dfBoom(P.pos,SP.span/9,60);beep(80,.7,'sawtooth',.25);P.vel.set(0,0,0);P.w.set(0,0,0);P.throttle=P.spool=0;
   dfFeed((killer||'Terrain')+' ✈ '+(window.MP&&MP.name?MP.name():'You'));if(window.MP&&MP.send&&killer&&DF.lastHitBy)MP.send({t:'kill',kid:DF.lastHitBy,k:killer,v:MP.name()});
   showMsg('SHOT DOWN',reason+' · respawning…','#ff5a5a',3800);DF.resp=4;plane.g.visible=false}
@@ -2281,10 +2322,11 @@ function updateBot(b,dt){const me=!P.crashed?P:null;b.think-=dt;
       dfShoot(b.pos.clone().addScaledVector(b.f,b.r*.6),b.f,b.vel,b,w.dmg*(b.ace?.9:.55),b.ace?1:2.4,true);if(Math.random()<.4)beep(150,.03,'sawtooth',.03*Math.min(1,500/dist))}
     b.mslCD-=dt;if(b.mslN>0&&b.mslCD<=0&&dist>700&&dist<3000&&dfAngle(b.f,toMe)<14*DEG){b.mslN--;b.mslCD=14;dfFireMissile(b.pos.clone(),b.vel,b.f,'me',b,true);showMsg('MISSILE LAUNCH',b.name+' fired at you · turn hard / flares (L)','#ff4040',2500)}}
   else des.set(b.f.x,0,b.f.z).normalize();
+  if(b.spin){des.copy(b.f).setY(Math.min(b.f.y,-.25)).normalize()}
   // stay off the ground / out of the city towers, keep apart
   const look=b.pos.clone().addScaledVector(b.f,b.v*3),fl=Math.max(dfFloor(b.pos.x,b.pos.z),dfFloor(look.x,look.z));
   const dive=Math.max(0,-b.f.y),pull=Math.asin(dive)/b.turn,loss=b.v*dive*pull*.6+b.v*1.2*dive;
-  if(b.pos.y-loss<fl+60){des.copy(b.f).setY(0).normalize().add(_tmp.set(0,1.4,0)).normalize()}else{if(b.pos.y<fl+80||look.y<fl)des.y+=clamp((fl+120-b.pos.y)/60,.4,2);if(des.y<-.55&&b.pos.y<fl+700)des.y=-.55}
+  if(b.spin){}else if(b.pos.y-loss<fl+60){des.copy(b.f).setY(0).normalize().add(_tmp.set(0,1.4,0)).normalize()}else{if(b.pos.y<fl+80||look.y<fl)des.y+=clamp((fl+120-b.pos.y)/60,.4,2);if(des.y<-.55&&b.pos.y<fl+700)des.y=-.55}
   if(b.pos.y>2600)des.y-=.5;
   if(Math.abs(b.pos.x)>4200||Math.abs(b.pos.z)>4200)des.add(_tmp.set(-b.pos.x,0,-b.pos.z).normalize().multiplyScalar(1.5));
   for(const o of DF.bots)if(o!==b&&o.alive&&o.pos.distanceTo(b.pos)<150)des.add(b.pos.clone().sub(o.pos).normalize());
@@ -2293,14 +2335,14 @@ function updateBot(b,dt){const me=!P.crashed?P:null;b.think-=dt;
   const ang=dfAngle(b.f,des),mx=b.turn*dt;const ax=new V3().crossVectors(b.f,des);
   if(ang>1e-4&&ax.lengthSq()>1e-10){ax.normalize();b.f.applyAxisAngle(ax,Math.min(ang,mx)).normalize()}
   const latA=Math.min(ang,mx)/dt*b.v,side=new V3().crossVectors(b.f,new V3(0,1,0)).normalize(),turnSign=Math.sign(side.dot(des)||0);
-  b.bank+=(clamp(Math.atan2(latA,9.81)*-turnSign,-1.35,1.35)-b.bank)*Math.min(1,dt*3);
+  b.bank+=(clamp(Math.atan2(latA,9.81)*-turnSign,-1.35,1.35)-b.bank)*Math.min(1,dt*3);if(b.spin)b.bank+=b.spin*dt*2.6;
   b.v+=((b.vmax*(1-b.f.y*.25))-b.v)*dt*.5;b.pos.addScaledVector(b.f,b.v*dt);
   // orientation: forward = -z, then roll
   const m4=new THREE.Matrix4().lookAt(new V3(),b.f,new V3(0,1,0));b.model.g.quaternion.setFromRotationMatrix(m4).multiply(new Q().setFromAxisAngle(new V3(0,0,1),b.bank));
   b.model.g.position.copy(b.pos);for(const p of b.model.props)p.rotation.z+=.7;for(const r of(b.model.rotors||[]))r.p.rotation[r.axis]+=r.k*dt;for(const d of(b.model.rdiscs||[]))d.material.opacity=.12;
   for(const f of b.model.flames){f.visible=b.f.y>.1;f.scale.set(1,1,.8)}
   if(b.hp<45&&Math.random()<dt*14)dfSmoke(b.pos.clone().addScaledVector(b.f,-b.r*.5),1.4+Math.random(),2,0x2a2a2a);
-  if(b.pos.y<Math.max(groundAt(b.pos.x,b.pos.z),0)+2||CITY.obsOn&&cityHit(b.pos.x,b.pos.z,b.pos.y-1,b.pos.y+1))dfKill(b,false)}
+  if(b.pos.y<Math.max(groundAt(b.pos.x,b.pos.z),0)+2||CITY.obsOn&&cityHit(b.pos.x,b.pos.z,b.pos.y-1,b.pos.y+1))dfKill(b,b.lastHit==='me')}
 function updateDogfight(dt){if(!DF.on)return;const now=performance.now()/1000;axes();
   if(DF.resp>0){DF.resp-=dt;if(DF.resp<=0){clearParts();P.crashed=false;hideMsg();dfStart(true);plane.g.visible=true}}
   for(const b of DF.bots)if(b.alive)updateBot(b,dt);
@@ -2321,10 +2363,10 @@ function updateDogfight(dt){if(!DF.on)return;const now=performance.now()/1000;ax
       const hits=b.enemy?(P.crashed?[]:[{me:true,pos:P.pos,r:Math.max(4,SP.span*.5)}]):T;
       for(const t of hits){if(t===b.owner)continue;const w=t.pos.clone().sub(p0),s=clamp(w.dot(dir),0,L),cp=p0.clone().addScaledVector(dir,s);
         if(cp.distanceTo(t.pos)<t.r){dead=true;dfSmoke(cp,1,.5,0xffd080);
-          if(t.me){DF.lastHitBy=b.owner.pid||null;dfDamage(b.dmg,b.owner.name||'enemy')}
+          if(t.me){DF.lastHitBy=b.owner.pid||null;dfDamage(b.dmg,b.owner.name||'enemy',toLocal(cp,P.pos,P.q))}
           else if(t.gnd){if(b.owner==='me')stHit(t,b.dmg*dfW(SP.id).gnd)}
-          else if(t.bot){t.hp-=b.dmg;if(t.hp<=0&&t.alive)dfKill(t,b.owner==='me')}
-          else if(t.isPlayer&&b.owner==='me'&&window.MP)MP.send({t:'hit',to:t.id,dmg:b.dmg});
+          else if(t.bot){t.hp-=b.dmg;botPartHit(t,cp,b.dmg,b.owner==='me');if(t.hp<=0&&t.alive)dfKill(t,b.owner==='me')}
+          else if(t.isPlayer&&b.owner==='me'&&window.MP){const l=t.q?toLocal(cp,t.pos,t.q):null;MP.send({t:'hit',to:t.id,dmg:b.dmg,lp:l?[+l.x.toFixed(2),+l.y.toFixed(2),+l.z.toFixed(2)]:null})}
           break}}}
     if(dead){DF.bul.splice(i,1);continue}
     if(n<BMAX){const k=n*6,tl=b.p.clone().addScaledVector(b.v,-.018);pa[k]=b.p.x;pa[k+1]=b.p.y;pa[k+2]=b.p.z;pa[k+3]=tl.x;pa[k+4]=tl.y;pa[k+5]=tl.z;
@@ -2340,7 +2382,7 @@ function updateDogfight(dt){if(!DF.on)return;const now=performance.now()/1000;ax
     const sp=m.v.length(),acc=Math.min(620,sp+dt*(m.life>6.5?260:0));
     if(tp){const los=tp.clone().sub(m.p),d=los.length(),tgo=d/Math.max(sp,1),aim=tp.clone().addScaledVector(tv,tgo*.9).sub(m.p).normalize(),cur=m.v.clone().normalize(),ang=dfAngle(cur,aim),mx=(30*9.81/Math.max(sp,1))*dt;
       if(ang>1e-4){const ax=new V3().crossVectors(cur,aim);if(ax.lengthSq()>1e-10)cur.applyAxisAngle(ax.normalize(),Math.min(ang,mx))}m.v.copy(cur).multiplyScalar(acc);
-      if(d<16){m.life=0;dfBoom(m.p,.9,25);if(m.tgt==='me'){DF.lastHitBy=m.from||null;dfDamage(70,m.owner.name||'missile')}else if(m.tgt.gnd){if(m.owner==='me')stHit(m.tgt,160)}else if(m.tgt.bot){m.tgt.hp-=75;if(m.tgt.hp<=0&&m.tgt.alive)dfKill(m.tgt,m.owner==='me')}}}
+      if(d<16){m.life=0;dfBoom(m.p,.9,25);if(m.tgt==='me'){DF.lastHitBy=m.from||null;dfDamage(70,m.owner.name||'missile',toLocal(m.p,P.pos,P.q))}else if(m.tgt.gnd){if(m.owner==='me')stHit(m.tgt,160)}else if(m.tgt.bot){m.tgt.hp-=75;botPartHit(m.tgt,m.p,60,m.owner==='me');if(m.tgt.hp<=0&&m.tgt.alive)dfKill(m.tgt,m.owner==='me')}}}
     else m.v.setLength(acc);
     m.v.y-=m.life<6.5?2*dt:0;m.p.addScaledVector(m.v,dt);m.m.position.copy(m.p);m.m.lookAt(m.p.clone().add(m.v));m.sm-=dt;if(m.sm<=0&&m.life>2){m.sm=.025;dfSmoke(m.p,1.1,2.2)}
     if(m.p.y<Math.max(groundAt(m.p.x,m.p.z),0)){m.life=0;dfBoom(m.p,.7,15)}
@@ -2352,6 +2394,7 @@ function updateDogfight(dt){if(!DF.on)return;const now=performance.now()/1000;ax
   if(best&&best===DF.locked)DF.lock=Math.min(1,DF.lock+dt/1.2);else{DF.locked=best;DF.lock=0}
   DF.lockBeep-=dt;if(DF.locked&&DF.lockBeep<=0){DF.lockBeep=DF.lock>=1?.09:.35;beep(DF.lock>=1?1100:700,.05,'sine',.05)}
   if(DF.warn>0&&Math.floor(now*8)%2===0&&DF.lockBeep<=0){beep(1500,.05,'square',.06);DF.lockBeep=.12}
+  if(P.dmg&&P.dmg.lost.engine&&!P.crashed&&Math.random()<dt*25){dfSmoke(P.pos.clone().addScaledVector(_f,SP.span*.25),1.4,1.8,0x1a1a1a);if(Math.random()<.5)dfSmoke(P.pos.clone().addScaledVector(_f,SP.span*.2),.9,.5,0xff6a1a)}
   if(DF.hp<40&&!P.crashed&&Math.random()<dt*10)dfSmoke(P.pos.clone().addScaledVector(_f,-SP.span*.3),1.3,1.6,0x333333);
   DF.feed.forEach(f=>f.ttl-=dt);DF.feed=DF.feed.filter(f=>f.ttl>0);DF.hitFx=Math.max(0,DF.hitFx-dt*2.5);
   dfHUD(T)}
@@ -2796,7 +2839,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last
       else if(dtEma>1/40&&GFX.pr<=GFX.min&&sun.castShadow)sun.castShadow=false}}
   pollInput(dt);
   if(state==='play'){updateWind(now);prevPos.copy(P.pos);acc+=dt;let n=0;while(acc>=STEP&&n<8){step(STEP);acc-=STEP;n++}if(n===8)acc=0;checkRings();landCheck(dt);updateMission(dt);updateDogfight(dt);}
-  updateVisuals(state==='paused'?0:dt);updateCamera(dt,now);updateCockpit(dt);updatePrecip(state==='paused'?0:dt);
+  updateVisuals(state==='paused'?0:dt);updateCamera(dt,now);updateCockpit(dt);updateDebris(state==='paused'?0:dt);updatePrecip(state==='paused'?0:dt);
   if(state==='play'){hudAcc+=dt;if(hudAcc>=1/30){updateHUD(hudAcc);hudAcc=0}}
   if(camMode!==camSaved){camSaved=camMode;lsSet('skyward_cam',String(camMode))}
   updateAudio(dt);

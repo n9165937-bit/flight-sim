@@ -87,6 +87,8 @@
     o.tQ = new THREE.Quaternion(num(d.qx), num(d.qy), num(d.qz), num(d.qw) || 1).normalize();
     o.tTime = performance.now(); o.gear = d.g ? 1 : 0; o.ab = num(d.ab);
     o.df = d.m === 1; o.hp = num(d.hp); o.fire = d.f === 1;
+    { const lp = num(d.lp) | 0, had = o.lp | 0; if (lp !== had) { if (lp & ~had) ['wingL', 'wingR', 'tail', 'engine'].forEach((k, i) => { if (lp & ~had & (1 << i)) detachPart(o.model, k, o.tVel || new THREE.Vector3()); });
+      if (!lp && had) { scene.remove(o.model.g); o.model = makePlane(o.type, true); scene.add(o.model.g); } o.lp = lp; } }
   });
 
   // ---- send ----
@@ -101,7 +103,7 @@
       qx: r4(P.q.x), qy: r4(P.q.y), qz: r4(P.q.z), qw: r4(P.q.w),
       vx: r2(P.vel.x), vy: r2(P.vel.y), vz: r2(P.vel.z), g: P.gearT > .5 ? 1 : 0,
       ab: SP.ab ? r2(Math.max(0, (P.spool - .6) / .4)) : 0,
-      m: DF.on && !DF.strike ? 1 : 0, hp: DF.on ? Math.round(DF.hp) : 100, f: DF.on && DF.netFire > 0 ? 1 : 0
+      m: DF.on && !DF.strike ? 1 : 0, lp: DF.on ? (DF.lostMask || 0) : 0, hp: DF.on ? Math.round(DF.hp) : 100, f: DF.on && DF.netFire > 0 ? 1 : 0
     }));
   }, 1000 / SEND_HZ);
   addEventListener('beforeunload', () => { try { client.publish(BASE + myId, ''); client.end(true); } catch (e) {} });
@@ -131,7 +133,7 @@
     let e; try { e = JSON.parse(msg.toString()); } catch (er) { return; }
     if (!e || e.from === myId || typeof DF === 'undefined') return;
     const fn = String(e.fn || 'Pilot').slice(0, 14);
-    if (e.t === 'hit' && e.to === myId && DF.on) { DF.lastHitBy = e.from; dfDamage(Math.min(80, num(e.dmg)), fn); }
+    if (e.t === 'hit' && e.to === myId && DF.on) { DF.lastHitBy = e.from; const lp = Array.isArray(e.lp) ? new THREE.Vector3(num(e.lp[0]), num(e.lp[1]), num(e.lp[2])) : null; dfDamage(Math.min(80, num(e.dmg)), fn, lp); }
     else if (e.t === 'msl' && e.to === myId && DF.on && !P.crashed && Array.isArray(e.p)) {
       const V = THREE.Vector3; dfFireMissile(new V(num(e.p[0]), num(e.p[1]), num(e.p[2])), new V(num(e.v[0]), num(e.v[1]), num(e.v[2])), new V(num(e.d[0]), num(e.d[1]), num(e.d[2])).normalize(), 'me', { name: fn }, true);
       DF.msl[DF.msl.length - 1].from = e.from; showMsg('MISSILE LAUNCH', fn + ' fired at you · turn hard / flares (L)', '#ff4040', 2500);
@@ -141,7 +143,7 @@
   window.MP = {
     name: () => myName,
     send: e => { if (client.connected) client.publish(BASE + 'evt', JSON.stringify(Object.assign({ from: myId, fn: myName }, e))); },
-    targets: () => Object.entries(others).filter(([, o]) => o.df && o.tPos).map(([id, o]) => o.tgt || (o.tgt = { id, isPlayer: true, get name() { return o.name; }, get pos() { return o.model.g.position; }, get vel() { return o.tVel; }, get hp() { return o.hp; }, r: Math.max(5, SPECS[o.type].span * .55), alive: true })),
+    targets: () => Object.entries(others).filter(([, o]) => o.df && o.tPos).map(([id, o]) => o.tgt || (o.tgt = { id, isPlayer: true, get name() { return o.name; }, get pos() { return o.model.g.position; }, get vel() { return o.tVel; }, get hp() { return o.hp; }, get q() { return o.model.g.quaternion; }, r: Math.max(5, SPECS[o.type].span * .55), alive: true })),
     firing: () => Object.values(others).filter(o => o.df && o.fire).map(o => ({ pos: o.model.g.position, f: new THREE.Vector3(0, 0, -1).applyQuaternion(o.model.g.quaternion) }))
   };
   setInterval(setBadge, 2000); setBadge();
