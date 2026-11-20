@@ -52,3 +52,7 @@ W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopte
 - AAA guns shoot back up close; SAM sites launch missiles when you're above ~110 m — fly low to stay under the radar, or use flares (L).
 - Weapons: guns (SPACE), missiles (X, lock ground targets too), bombs (J). The yellow ring (CCIP) shows where a dumb bomb will land; with a lock, bombs are laser-guided.
 - Score per target + time bonus; best score saved per aircraft and map.
+
+## Real-scale jet models
+- The F-16, F/A-18, F-22, A-10 and F-15E use the real-scale models from the Hangar project (published length, span and height; FS595 paint schemes; panel lines; weapons on the pylons).
+- AI pilots, other players and parked jets use a lighter version of the same models; so does your own jet on Low graphics.

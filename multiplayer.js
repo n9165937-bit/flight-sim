@@ -76,7 +76,7 @@
     let o = others[id];
     if (!o || o.type !== type || o.name !== name) {
       if (o) { scene.remove(o.model.g); scene.remove(o.tag); }
-      const model = makePlane(type); scene.add(model.g);
+      const model = makePlane(type, true); scene.add(model.g);
       const tag = nameTag(name); scene.add(tag);
       model.g.position.set(num(d.x), num(d.y), num(d.z));
       o = others[id] = { model, tag, type, name };
