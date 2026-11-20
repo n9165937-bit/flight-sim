@@ -2275,13 +2275,16 @@ function dfStart(keep,strike){dfFresh();if(!keep){dfClear();DF.k=0;DF.d=0;DF.fee
   $('dfhud').classList.remove('hidden');for(const n of['tfire','tmsl','tflr','tbmb'])$(n)&&$(n).classList.toggle('hidden',n==='tmsl'?!w.msl:n==='tflr'?!(w.msl||w.bmb):n==='tbmb'?!w.bmb:false);
   // spawn somewhere open, high enough
   const a=Math.random()*Math.PI*2,r=Math.random()*2500,x=Math.cos(a)*r,z=Math.sin(a)*r,hd=Math.random()*Math.PI*2;
-  P.pos.set(x,dfFloor(x,z)+(SP.heli?150:500),z);P.q.setFromEuler(new THREE.Euler(0,hd,0,'YXZ'));axes();const v0=SP.heli?40:Math.min(SP.cruise*.95,SP.fighter?180:SP.cruise);P.vel.copy(_f).multiplyScalar(v0);
+  P.pos.set(x,dfFloor(x,z)+(SP.heli?150:500),z);let fx=0,fz=0,bd=1e9;for(const t of dfTargets()){if(!t.pos||t.gnd)continue;const dd=Math.hypot(t.pos.x-x,t.pos.z-z);if(dd<bd){bd=dd;fx=t.pos.x;fz=t.pos.z}}
+  if(bd===1e9&&Math.hypot(x,z)<300){fx=x-Math.sin(hd);fz=z-Math.cos(hd)}P.q.setFromEuler(new THREE.Euler(0,faceTo(x,z,fx,fz),0,'YXZ'));axes();const v0=SP.heli?40:Math.min(SP.cruise*.95,SP.fighter?180:SP.cruise);P.vel.copy(_f).multiplyScalar(v0);
   P.throttle=SP.heli?SP.hov+.01:.75;P.spool=SP.heli?P.throttle:SP.ab?.5:.75;if(SP.retract)P.gear=P.gearT=0;P.onGround=false;P.rpm=SP.heli?1:.8;P.airTime=10;
   if(DF.strike){for(const n of['tfire','tmsl','tflr','tbmb'])$(n)&&$(n).classList.toggle('hidden',n==='tmsl'?!w.msl:n==='tflr'?!(w.msl||w.bmb):n==='tbmb'?!w.bmb:false);
-    if(keep&&ST.area){const d=new V3(Math.random()-.5,0,Math.random()-.5).normalize().multiplyScalar(4800);P.pos.set(ST.area.x+d.x,0,ST.area.z+d.z);P.pos.y=dfFloor(P.pos.x,P.pos.z)+(SP.heli?160:550);P.q.setFromEuler(new THREE.Euler(0,Math.atan2(-d.x,d.z)+Math.PI,0,'YXZ'));axes();P.vel.copy(_f).multiplyScalar(SP.heli?40:Math.min(SP.cruise,200))}
+    if(keep&&ST.area){const d=new V3(Math.random()-.5,0,Math.random()-.5).normalize().multiplyScalar(3200);P.pos.set(clamp(ST.area.x+d.x,-HALF+800,HALF-800),0,clamp(ST.area.z+d.z,-HALF+800,HALF-800));P.pos.y=dfFloor(P.pos.x,P.pos.z)+(SP.heli?160:550);P.q.setFromEuler(new THREE.Euler(0,faceTo(P.pos.x,P.pos.z,ST.area.x,ST.area.z),0,'YXZ'));axes();P.vel.copy(_f).multiplyScalar(SP.heli?40:Math.min(SP.cruise,200))}
     if(!keep)stStart();else showMsg('BACK IN THE FIGHT',ST.kind+' — '+ST.units.filter(u=>u.alive).length+' targets left','#ff8a6a',2500);return}
-  const nb=+$('selBots').value.replace(/\D/g,'')||0;if(!keep){for(let i=0;i<nb;i++)dfSpawnBot(i)}
+  const nb=+$('selBots').value.replace(/\D/g,'')||0;if(!keep){for(let i=0;i<nb;i++)dfSpawnBot(i);let bd=1e9,b=null;for(const t of DF.bots){const dd=P.pos.distanceTo(t.pos);if(dd<bd){bd=dd;b=t}}if(b){P.q.setFromEuler(new THREE.Euler(0,faceTo(P.pos.x,P.pos.z,b.pos.x,b.pos.z),0,'YXZ'));axes();P.vel.copy(_f).multiplyScalar(P.vel.length())}}
   showMsg('DOGFIGHT',nb?`${nb} ${$('selBots').value.includes('ace')?'ace':'rookie'} pilot${nb>1?'s':''} inbound · SPACE guns${w.msl?' · X missile · L flares':''}`:'Waiting for other pilots · SPACE guns','#ff6a5a',4000)}
+// yaw that points the nose (-Z) from (x,z) at (tx,tz)
+function faceTo(x,z,tx,tz){return Math.atan2(x-tx,z-tz)}
 function dfFeed(t){DF.feed.unshift({t,ttl:6});DF.feed.length=Math.min(DF.feed.length,5)}
 const _hq=new THREE.Quaternion();
 function toLocal(pt,pos,q){return pt.clone().sub(pos).applyQuaternion(_hq.copy(q).invert())}
@@ -2450,8 +2453,8 @@ function stNext(first){stClearUnits();ST.n++;const tpl=STK[(ST.n-1)%STK.length],
     ST.units.push({gnd:true,type,name:U.name,hp:U.hp,max:U.hp,r:U.r,alive:true,G:m.G,tur:m.tur,pos:m.G.position,vel:new V3(),mv:tpl.move&&(type==='tank'||type==='truck')?fw.clone().multiplyScalar(tpl.move):null,fireT:2+Math.random()*4,burst:0,smT:0})});
   ST.grp=new THREE.Group();scene.add(ST.grp);const bm=new THREE.Mesh(new THREE.CylinderGeometry(5,5,900,16,1,true),new THREE.MeshBasicMaterial({color:0xff4a3a,transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
   bm.position.set(ST.area.x,ST.area.y+450,ST.area.z);ST.grp.add(bm);
-  if(first){const d=new V3().subVectors(P.pos,ST.area).setY(0);if(d.length()<500)d.set(1,0,0);d.setLength(5200);P.pos.set(ST.area.x+d.x,0,ST.area.z+d.z);P.pos.y=dfFloor(P.pos.x,P.pos.z)+(SP.heli?160:550);
-    const hdg=Math.atan2(-d.x,d.z);P.q.setFromEuler(new THREE.Euler(0,hdg+Math.PI,0,'YXZ'));axes();P.vel.copy(_f).multiplyScalar(SP.heli?40:Math.min(SP.cruise,200))}
+  if(first){const d=new V3().subVectors(P.pos,ST.area).setY(0);if(d.length()<500)d.set(1,0,0);d.setLength(3600);P.pos.set(clamp(ST.area.x+d.x,-HALF+800,HALF-800),0,clamp(ST.area.z+d.z,-HALF+800,HALF-800));P.pos.y=dfFloor(P.pos.x,P.pos.z)+(SP.heli?160:550);
+    P.q.setFromEuler(new THREE.Euler(0,faceTo(P.pos.x,P.pos.z,ST.area.x,ST.area.z),0,'YXZ'));axes();P.vel.copy(_f).multiplyScalar(SP.heli?40:Math.min(SP.cruise,200))}
   showMsg('STRIKE '+ST.n+' · '+ST.kind.toUpperCase(),ST.txt,'#ff8a6a',4500)}
 function stKill(u,byMe){if(!u.alive)return;u.alive=false;dfBoom(u.pos.clone().setY(u.pos.y+2),u.type==='fuel'?2.4:1.3,u.type==='fuel'?70:40);beep(90,.5,'sawtooth',.2);
   u.G.traverse(o=>{if(o.isMesh)o.material=stMat.burnt});if(u.tur){u.tur.rotation.x=-.4;u.tur.position.y+=.3}u.burn=25;
