@@ -2509,7 +2509,7 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyV')flapsUp();
   if(e.code==='KeyG')toggleGear();
   if(e.code==='KeyK')doCobra();
-  if(e.code==='KeyN')toggleNVG();
+  if(e.code==='KeyN'&&mode!=='landing')toggleNVG();
   if(e.code==='KeyX')dfMissileKey();
   if(e.code==='KeyJ')dfBomb();
   if(e.code==='KeyL')dfFlares();
