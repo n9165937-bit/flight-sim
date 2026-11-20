@@ -42,3 +42,13 @@ W/S pitch · A/D roll · Q/E rudder · Shift/Z throttle (collective in helicopte
 - Carrier landings: gear down, fly the 3.5° glide slope to the angled deck and catch an arresting wire (aim for the 3-wire). Miss them and it's a bolter — go around. Throttle back to release the wire.
 - Carrier takeoffs: Runway mode on a carrier puts you on the catapult — full throttle to launch.
 - Helicopters can use the carrier helo spots for missions.
+
+## A-10 Warthog & F-15E Strike Eagle
+- A-10: slow, tough close-air-support jet with the GAU-8 cannon (4x damage on ground targets), Mavericks and bombs.
+- F-15E: big two-seat strike fighter with afterburners, missiles and 8 laser-guided bombs.
+
+## Strike Missions (ground attack)
+- New mode: destroy armor columns, SAM sites, supply depots and tank companies. Missions chain with increasing defenses.
+- AAA guns shoot back up close; SAM sites launch missiles when you're above ~110 m — fly low to stay under the radar, or use flares (L).
+- Weapons: guns (SPACE), missiles (X, lock ground targets too), bombs (J). The yellow ring (CCIP) shows where a dumb bomb will land; with a lock, bombs are laser-guided.
+- Score per target + time bonus; best score saved per aircraft and map.

@@ -101,7 +101,7 @@
       qx: r4(P.q.x), qy: r4(P.q.y), qz: r4(P.q.z), qw: r4(P.q.w),
       vx: r2(P.vel.x), vy: r2(P.vel.y), vz: r2(P.vel.z), g: P.gearT > .5 ? 1 : 0,
       ab: SP.ab ? r2(Math.max(0, (P.spool - .6) / .4)) : 0,
-      m: DF.on ? 1 : 0, hp: DF.on ? Math.round(DF.hp) : 100, f: DF.on && DF.netFire > 0 ? 1 : 0
+      m: DF.on && !DF.strike ? 1 : 0, hp: DF.on ? Math.round(DF.hp) : 100, f: DF.on && DF.netFire > 0 ? 1 : 0
     }));
   }, 1000 / SEND_HZ);
   addEventListener('beforeunload', () => { try { client.publish(BASE + myId, ''); client.end(true); } catch (e) {} });
