@@ -2217,7 +2217,7 @@ function updateMission(dt){if(!MIS.on||P.crashed)return;
 function misRetarget(){const S=MIS.stages[MIS.si];if(!S)return;if(MIS.grp){for(const c of[...MIS.grp.children])if(!MIS.surv.includes(c))MIS.grp.remove(c)}misBeacon(S.p,S.r,S.k==='drop'?0xffb43c:0x3cff8a)}
 
 /* ---------------- location damage: parts break off ---------------- */
-const PART_HP={wingL:45,wingR:45,tail:35,engine:40};
+const PART_HP={wingL:18,wingR:18,tail:15,engine:22};
 const PART_NAME={wingL:'LEFT WING',wingR:'RIGHT WING',tail:'TAIL',engine:'ENGINE'};
 function partOf(lx,lz,box,jet){const u=(lz-box.z0)/Math.max(1,box.z1-box.z0),xn=Math.abs(lx)/Math.max(1,box.xh);
   if(u>.8)return'tail';if(xn>.3&&u>.12&&u<=.8)return lx<0?'wingL':'wingR';if(jet?(u>.55&&xn<=.3):(u<.2))return'engine';return'body'}
@@ -2241,7 +2241,7 @@ function updateDebris(dt){for(let i=DEB.length-1;i>=0;i--){const d=DEB[i];d.life
     if(d.g.position.y<Math.max(groundAt(d.g.position.x,d.g.position.z),0)+.5||d.life<=0){if(d.life>0)dfBoom(d.g.position,.5,10);scene.remove(d.g);DEB.splice(i,1)}}}
 function clearDebris(){for(const d of DEB)scene.remove(d.g);DEB.length=0}
 // hit point -> part damage. Returns the part name that broke (or null)
-function partDamage(D,lp,dmg,box,jet){const p=partOf(lp.x,lp.z,box,jet);if(p==='body'||D.lost[p])return null;D[p]=(D[p]||0)+dmg;if(D[p]>=PART_HP[p]){D.lost[p]=1;return p}return null}
+function partDamage(D,lp,dmg,box,jet){const p=partOf(clamp(lp.x,-box.xh,box.xh),clamp(lp.z,box.z0,box.z1),box,jet);if(p==='body'||D.lost[p])return null;D[p]=(D[p]||0)+dmg;if(D[p]>=PART_HP[p]){D.lost[p]=1;return p}return null}
 const newDmg=()=>({lost:{}});
 
 /* ---------------- dogfight (AI bots + PvP) ---------------- */
