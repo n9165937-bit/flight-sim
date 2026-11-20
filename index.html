@@ -2239,7 +2239,7 @@ function dfSpawnBot(i,near){const id=dfBotSpec(),sp=SPECS[id],model=makePlane(id
 function dfClear(){stClearUnits();ST.on=false;DF.strike=false;for(const b of DF.bombs)scene.remove(b.m);DF.bombs=[];for(const b of DF.bots)scene.remove(b.model.g);DF.bots=[];for(const m of DF.msl)scene.remove(m.m);DF.msl=[];DF.bul=[];for(const s of DF.sm)scene.remove(s.m);DF.sm=[];DF.flr.forEach(f=>scene.remove(f.m));DF.flr=[];
   DF.on=false;$('dfhud').classList.add('hidden');$('dfmk').innerHTML='';for(const n of['tfire','tmsl','tflr','tbmb'])$(n)&&$(n).classList.add('hidden')}
 function dfStart(keep,strike){if(!keep){dfClear();DF.k=0;DF.d=0;DF.feed=[]}DF.on=true;DF.hp=100;const w=dfW(SP.id);DF.mslN=w.msl;DF.flrN=w.msl||w.bmb?8:0;DF.bmbN=w.bmb;if(strike)DF.strike=true;DF.lock=0;DF.locked=null;DF.resp=0;
-  $('dfhud').classList.remove('hidden');for(const n of['tfire','tmsl','tflr'])$(n)&&$(n).classList.toggle('hidden',n!=='tfire'&&!w.msl);
+  $('dfhud').classList.remove('hidden');for(const n of['tfire','tmsl','tflr','tbmb'])$(n)&&$(n).classList.toggle('hidden',n==='tmsl'?!w.msl:n==='tflr'?!(w.msl||w.bmb):n==='tbmb'?!w.bmb:false);
   // spawn somewhere open, high enough
   const a=Math.random()*Math.PI*2,r=Math.random()*2500,x=Math.cos(a)*r,z=Math.sin(a)*r,hd=Math.random()*Math.PI*2;
   P.pos.set(x,dfFloor(x,z)+(SP.heli?150:500),z);P.q.setFromEuler(new THREE.Euler(0,hd,0,'YXZ'));axes();const v0=SP.heli?40:Math.min(SP.cruise*.95,SP.fighter?180:SP.cruise);P.vel.copy(_f).multiplyScalar(v0);
