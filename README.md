@@ -1,6 +1,6 @@
 # Skyward — Flight Simulator
 
-A browser flight sim with airplanes from trainers to fighters (Skylark, Vortex, Kestrel, Meridian, PC-12, F-16, F/A-18, F-22, A-10, F-15E, F-35B, B-2, AC-130J), 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), six maps (Green Valley, Red Rock Canyon, Alpine Peaks, Metro City, Ocean Fleet, Desert Base) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
+A browser flight sim with airplanes from trainers to fighters (Skylark, Vortex, Kestrel, Meridian, PC-12, F-16, F/A-18, F-22, A-10, F-15E, B-2, AC-130J), 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), six maps (Green Valley, Red Rock Canyon, Alpine Peaks, Metro City, Ocean Fleet, Desert Base) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
 
 **Play:** https://n9165937-bit.github.io/flight-sim/
 
@@ -10,7 +10,7 @@ Want your own server with a kills/deaths leaderboard? See [server/README.md](ser
 
 ## Controls
 W/S pitch · A/D roll · Q/E rudder · Shift/Ctrl throttle (collective in helicopters) · F/V flaps · G gear · B brakes · K Cobra (fighters) · C camera · R reset · Esc menu
-Combat: Space guns · X missile · J bomb · L flares · N night vision · O O eject · Y F-35 hover · T AC-130 gunship orbit
+Combat: Space guns · X missile · J bomb · L flares · N night vision · O O eject · T AC-130 gunship orbit
 
 ## Weather & settings
 - Weather (Clear, Overcast, Rain, Snow, Fog) and time of day (Day, Dawn, Sunset, Night) are separate, so you can mix them — e.g. rain at sunset or fog at night. Change either any time from the pause menu.
@@ -83,7 +83,6 @@ Combat: Space guns · X missile · J bomb · L flares · N night vision · O O e
 - In Dogfight and Strike the tanker flies a racetrack over the map (blue TANKER marker) for jets that need fuel.
 
 ## New aircraft
-- **F-35B Lightning II**: stealth fighter. Press **Y** below 185 kt to swing the nozzle down and hover like a helicopter; Y again to fly wing-borne.
 - **B-2 Spirit**: 52 m flying wing with 16 bombs and no guns.
 - **AC-130J Ghostrider**: four-prop gunship. Press **T** for a gunship orbit — it flies a left-hand circle on its own while you aim the side guns through a thermal camera: Space = 30 mm, X = 105 mm.
 - The jets' ailerons, flaps, stabilators and rudders now move with your controls.
