@@ -145,6 +145,7 @@ body.touch .big{font-size:20px}body.touch .sub{font-size:10px;margin-top:1px}bod
 body.touch #hdgw{top:4px;padding:1px 3px;transform:translateX(-50%) scale(.6);transform-origin:top center}
 body.touch #topbtns{top:auto;right:auto;bottom:calc(6px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%)}
 body.touch #topbtns .ibtn{padding:3px 7px;font-size:10px}
+#topbtns .touchonly{display:none}body.touch #topbtns .touchonly{display:inline-block}
 body.touch #bottom{left:calc(8px + env(safe-area-inset-left));top:72px;bottom:auto;transform:none;gap:6px;align-items:flex-start}
 body.touch #adi{width:62px;height:62px}
 body.touch #ilsw{padding:3px 4px}body.touch #ils{width:56px;height:56px}body.touch #ilsw .stat{font-size:8px;line-height:1.2}body.touch #ilsw .lbl{display:none}
@@ -202,7 +203,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
     <kbd>C</kbd> camera · drag mouse to look · <kbd>M</kbd> map · <kbd>R</kbd> reset · <kbd>O</kbd><kbd>O</kbd> eject · <kbd>Y</kbd> F-35 hover · <kbd>T</kbd> AC-130 orbit · <kbd>Esc</kbd> menu
   </div>
   <div id="actbtns"><div class="frow"><button class="ibtn" id="bfup" title="Flaps up (V)">▲</button><div id="bflap"><span id="bflt">FLAPS UP</span><i><b id="bflb"></b></i></div><button class="ibtn" id="bfdn" title="Flaps down (F)">▼</button></div><button class="ibtn" id="bgear">GEAR DOWN</button><button class="ibtn" id="bcobra">COBRA (K)</button><button class="ibtn hidden" id="bnvg">NIGHT VISION (N)</button><button class="ibtn hidden" id="bstovl">HOVER MODE (Y)</button><button class="ibtn hidden" id="bgs">GUNSHIP ORBIT (T)</button></div>
-  <div id="topbtns"><button class="ibtn" id="bhelp">? KEYS</button><button class="ibtn" id="bsnd">SOUND ON</button><button class="ibtn" id="bfs">FULLSCREEN</button><button class="ibtn" id="bpause">MENU</button></div>
+  <div id="topbtns"><button class="ibtn" id="bhelp">? KEYS</button><button class="ibtn" id="bsnd">SOUND ON</button><button class="ibtn" id="bfs">FULLSCREEN</button><button class="ibtn" id="bpause">MENU</button><button class="ibtn touchonly" id="trst">RESET</button></div>
   <div id="result" class="panel hidden">
     <h2 id="rtitle">LANDING REPORT</h2>
     <div id="rgrade">A</div>
@@ -216,7 +217,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
 <div id="touch" class="hidden">
   <div id="tjoy"><div id="tknob"></div></div>
   <div id="tthr"><div id="tthrf"></div></div>
-  <div id="tbtns"><button id="tgear">GEAR</button><button id="tcob">COBRA</button><button id="tflap">FLAP ▼</button><button id="tflapu">FLAP ▲</button><button id="tbrk">BRAKE</button><button id="tcam">CAM</button><button id="tej">EJECT</button><button id="tstovl" class="hidden">HOVER</button><button id="tgs" class="hidden">ORBIT</button><button id="tfire" class="hidden">FIRE</button><button id="tmsl" class="hidden">MSL</button><button id="tflr" class="hidden">FLR</button><button id="tbmb" class="hidden">BOMB</button><button id="tnvg">NVG</button><button id="trst">RESET</button></div>
+  <div id="tbtns"><button id="tgear">GEAR</button><button id="tcob">COBRA</button><button id="tflap">FLAP ▼</button><button id="tflapu">FLAP ▲</button><button id="tbrk">BRAKE</button><button id="tcam">CAM</button><button id="tej">EJECT</button><button id="tstovl" class="hidden">HOVER</button><button id="tgs" class="hidden">ORBIT</button><button id="tfire" class="hidden">FIRE</button><button id="tmsl" class="hidden">MSL</button><button id="tflr" class="hidden">FLR</button><button id="tbmb" class="hidden">BOMB</button><button id="tnvg">NVG</button></div>
 </div>
 
 <div id="menu">
