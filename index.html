@@ -1320,13 +1320,22 @@ function vnoise(x,y,z){const xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z),
   return L(L(L(c(0,0,0),c(1,0,0),u),L(c(0,1,0),c(1,1,0),u),v),L(L(c(0,0,1),c(1,0,1),u),L(c(0,1,1),c(1,1,1),u),v),w)}
 const nfbm=(x,y,z)=>.6*vnoise(x,y,z)+.3*vnoise(x*2.1+5,y*2.1,z*2.1)+.1*vnoise(x*4.3,y*4.3+9,z*4.3);
 const sstep=(a,b,x)=>{const t=Math.min(Math.max((x-a)/(b-a),0),1);return t*t*(3-2*t)};
-function paintColors(A,g){const S=A.scheme,col=new Float32Array(g.pos.length),C=THREE.Color;
+function paintColors(A,g,nm=''){const S=A.scheme,col=new Float32Array(g.pos.length),C=THREE.Color;
+  const isFin=/v_tail|ventral/.test(nm),isWing=/^wing/.test(nm),isStab=/h_stab/.test(nm);let xm=0;if(S.tips)for(let i=0;i<g.pos.length;i+=3)xm=Math.max(xm,Math.abs(g.pos[i]));
+  const ov=(S.fin!=null||S.finTop||S.check||S.stripe||S.tips||S.wing!=null);
   const ca=new C(S.a),cb=new C(S.b),cu=S.under?new C(S.under):null,cr=S.radome?new C(S.radome[1]):null,cg=S.glare?new C(S.glare[2]):null,soot=new C(0x2a2724),c=new C();
   for(let i=0;i<g.pos.length;i+=3){const x=g.pos[i],y=g.pos[i+1],z=g.pos[i+2],ny=g.nrm[i+1],s=A.L/2-z;c.copy(ca);
     if(S.camo)c.lerp(cb,sstep(.47,.53,nfbm(x*S.camo+3.1,y*S.camo*1.4,z*S.camo)));
     if(cu)c.lerp(cu,sstep(-.2,-.55,ny));
     if(cr)c.lerp(cr,1-sstep(S.radome[0]-.03,S.radome[0]+.03,s));
     if(cg&&s>S.glare[0]&&s<S.glare[1]&&ny>.35&&Math.abs(x)<.5)c.copy(cg);
+    if(ov){// special liveries: coloured fins, checkered tails, fuselage bands, wingtips
+      if(isWing&&S.wing!=null)c.set(S.wing);
+      if(isFin&&S.fin!=null)c.set(S.fin);
+      if(isFin&&S.finTop&&y>S.finTop[0])c.set(S.finTop[1]);
+      if(isFin&&S.check&&y>S.check[0]){const k=S.check[3];c.set(((Math.floor(z/k)+Math.floor(y/k))&1)?S.check[1]:S.check[2])}
+      if(S.stripe&&!isWing&&!isStab&&!isFin)for(const st of S.stripe)if(s>A.L*st[0]&&s<A.L*st[1])c.set(st[2]);
+      if(S.tips&&(isWing||isStab)&&Math.abs(x)>xm*S.tips[0])c.set(S.tips[1])}
     c.lerp(soot,sstep(A.L*.86,A.L*.99,s)*.3);col[i]=c.r;col[i+1]=c.g;col[i+2]=c.b}
   return col}
 return{AIRCRAFT,buildAircraft,paintColors}})();
@@ -1350,9 +1359,9 @@ function hgMat(k){if(HG_MATS[k])return HG_MATS[k];const S=(c,m,r,o={})=>new THRE
   Object.assign(HG_MATS,M);return HG_MATS[k]}
 const HG_CACHE={};
 function hgGeometry(key,lo,lv){const ck=key+(lo?'_lo':'')+(lv&&lv[1]?'_'+lv[0]:'');if(HG_CACHE[ck])return HG_CACHE[ck];const bk=key+(lo?'_lo':'')+'_raw';const built=HG_CACHE[bk]||(HG_CACHE[bk]=HG.buildAircraft(key,lo?.42:1));
-  const A=lv&&lv[1]?Object.assign({},built.A,{scheme:Object.assign({},built.A.scheme,lv[1],{radome:built.A.scheme.radome&&[built.A.scheme.radome[0],lv[1].a<0x555555?0x2a2d31:built.A.scheme.radome[1]]})}):built.A;
+  const A=lv&&lv[1]?Object.assign({},built.A,{scheme:Object.assign({},built.A.scheme,lv[1],{radome:lv[1].radome||built.A.scheme.radome&&[built.A.scheme.radome[0],lv[1].a<0x555555?0x2a2d31:built.A.scheme.radome[1]]})}):built.A;
   const parts=built.parts.map(p=>{const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p.g.pos,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(p.g.nrm,3));
-    geo.setAttribute('uv',new THREE.Float32BufferAttribute(p.g.uv,2));if(p.mat==='paint'){const c=HG.paintColors(A,p.g);for(let i=0;i<c.length;i++)c[i]=Math.min(1,c[i]*1.25+.02);geo.setAttribute('color',new THREE.Float32BufferAttribute(c,3))}geo.setIndex(p.g.idx);return{geo,mat:p.mat,grp:p.grp,name:p.name}});
+    geo.setAttribute('uv',new THREE.Float32BufferAttribute(p.g.uv,2));if(p.mat==='paint'){const c=HG.paintColors(A,p.g,p.name);for(let i=0;i<c.length;i++)c[i]=Math.min(1,c[i]*1.25+.02);geo.setAttribute('color',new THREE.Float32BufferAttribute(c,3))}geo.setIndex(p.g.idx);return{geo,mat:p.mat,grp:p.grp,name:p.name}});
   return HG_CACHE[ck]={parts,axisY:built.axisY,noz:built.noz,tips:built.tips,seats:built.seats,A}}
 
 // split the Hangar wings/tails into moving control surfaces (cached per model): ailerons + flaps, stabilators or elevators, rudders
@@ -1481,7 +1490,30 @@ const LIV_CIV=[['Factory',null],['Racing Red',{base:'#c8202a',acc:['#f4f4f1','#1
   ['Midnight',{base:'#1c1f24',acc:['#d9a441','#8a8f96']}],['Lime',{base:'#e9ecef',acc:['#5fbf2a','#1d1d1f']}],['Orange',{base:'#ef7a1a',acc:['#1d1d1f','#f4f4f1']}]];
 const LIV_MILH=[['Factory',null],['Desert Tan',{base:'#b59a6b',acc:['#8c7550','#6e5c3f']}],['Navy Gray',{base:'#6d7680',acc:['#5c646d','#4b525a']}],['Rescue',{base:'#e9e9e6',acc:['#c8202a','#c8202a']}],
   ['Night Black',{base:'#23262a',acc:['#2e3237','#3a3f45']}],['Coast Guard Orange',{base:'#e2641e',acc:['#f4f4f1','#1d1d1f']}]];
-function livList(id){return HG_MAP[id]?LIV_JET:['uh60','ah64','chinook'].includes(id)?LIV_MILH:LIV_CIV}
+// two or more liveries made just for each aircraft (listed first, with a ★)
+const LIV_SPECIAL={
+  f16:[['Demo Team',{a:0xf2f2f0,b:0xf2f2f0,under:0x1f3f8f,camo:0,radome:[1.6,0xc8202a],fin:0xf2f2f0,finTop:[3.9,0x1f3f8f],stripe:[[.3,.335,0xc8202a],[.35,.38,0x1f3f8f]],tips:[.8,0xc8202a]}],
+       ['Tiger Meet',{a:0xe58a1c,b:0x1b1b1b,under:0xf0b45a,camo:1.1,fin:0x1b1b1b,finTop:[4.0,0xe58a1c]}],['Splinter Aggressor',{a:0xc9b48a,b:0x7a8a5a,under:0xd8ccb0,camo:.7,radome:[1.3,0x3a3a3a]}]],
+  f18:[['Blue Demo',{a:0x16306e,b:0x16306e,under:0x16306e,camo:0,radome:[1.0,0x16306e],stripe:[[.17,.21,0xf2c230]],tips:[.78,0xf2c230],fin:0x16306e,finTop:[3.6,0xf2c230]}],
+       ['CAG Bird',{a:0x8a939b,b:0x8a939b,under:0xc2c8cd,camo:0,fin:0x1d3561,finTop:[3.9,0xf2c230],stripe:[[.08,.1,0xf2c230]]}]],
+  f22:[['Checker Tail',{a:0x7c858d,b:0x6c747b,camo:.16,check:[3.6,0xf2c230,0x1b1b1b,.35]}],['Midnight Raptor',{a:0x232629,b:0x1b1d20,under:null,camo:.1,fin:0x232629,finTop:[3.8,0xb3202a]}]],
+  a10:[['Desert Hog',{a:0xc9ad7f,b:0x8b6a45,under:0xd8c9a6,camo:.32,radome:[1.6,0xb3202a]}],['Euro Woods',{a:0x495a37,b:0x2c3627,under:null,camo:.45,radome:[.8,0x2c3627]}],
+       ['Gray Ghost Hog',{a:0x9aa3ab,b:0x7d8791,under:0xb8bec4,camo:.25,finTop:[3.4,0x2a2d31],tips:[.85,0x2a2d31]}]],
+  f15e:[['Checker Tail',{a:0x50565b,b:0x454a4f,camo:.12,check:[3.9,0xf2f2f0,0x1b1b1b,.4]}],['Bronze Anniversary',{a:0x6b5a45,b:0x55473a,under:null,camo:.12,fin:0x3a2f25,finTop:[4.5,0xc9a24a],tips:[.85,0xc9a24a]}]],
+  b2:[['Gloss Black',{a:0x16181b,b:0x101214,under:null,camo:.04}],['Prototype',{a:0xe9ebed,b:0xd7dadd,under:null,camo:.05,stripe:[[0,.14,0xe2641e]],tips:[.86,0xe2641e]}]],
+  ac130:[['Spooky Black',{a:0x1f2124,b:0x191b1d,under:null,camo:.05,radome:[1.6,0x111214]}],['Ghost Gray',{a:0x9aa3ab,b:0x8a939b,under:0xb8bec4,camo:.08,finTop:[9.5,0x2a2d31]}]],
+  skylark:[['Flight School',{base:'#f4f4f1',acc:['#1f4f8f','#f2c230']}],['Patriot',{base:'#f4f4f1',acc:['#b3202a','#1f3f8f']}]],
+  vortex:[['Sunset Aero',{base:'#ef7a1a',acc:['#5b2a86','#f2c230']}],['Checker Racer',{base:'#f4f4f1',acc:['#1d1d1f','#c8202a']}]],
+  kestrel:[['Island Hopper',{base:'#f4f4f1',acc:['#1aa6a6','#f2c230']}],['Executive',{base:'#14244a',acc:['#c9a24a','#f4f4f1']}]],
+  meridian:[['Gold Charter',{base:'#f4f4f1',acc:['#c9a24a','#1d1d1f']}],['Air Taxi',{base:'#f2c230',acc:['#1d1d1f','#f4f4f1']}]],
+  pc12:[['Flying Doctor',{base:'#f4f4f1',acc:['#c8202a','#1f4f8f']}],['Bush Ops',{base:'#5b6b45',acc:['#ef7a1a','#f4f4f1']}]],
+  bell407:[['News Chopper',{base:'#1f4f8f',acc:['#f4f4f1','#c8202a']}],['Medevac',{base:'#f4f4f1',acc:['#c8202a','#1d1d1f']}],['Sheriff',{base:'#1d1f22',acc:['#f4f4f1','#c9a24a']}]],
+  uh60:[['Medevac',{base:'#4a5540',acc:['#f4f4f1','#c8202a']}],['Arctic Rescue',{base:'#e9e9e6',acc:['#e2641e','#1d1d1f']}]],
+  ah64:[['Shark Gray',{base:'#5a646e',acc:['#454d55','#b3202a']}],['Tiger Stripe',{base:'#c9a24a',acc:['#1d1d1f','#1d1d1f']}]],
+  chinook:[['Firefighter',{base:'#c8202a',acc:['#f4f4f1','#1d1d1f']}],['Sand Lift',{base:'#c2a77a',acc:['#8c7550','#6e5c3f']}]]};
+const _livC={};
+function livList(id){if(_livC[id])return _livC[id];const g=HG_MAP[id]?LIV_JET:['uh60','ah64','chinook'].includes(id)?LIV_MILH:LIV_CIV;
+  return _livC[id]=[g[0],...(LIV_SPECIAL[id]||[]).map(([n,v])=>['★ '+n,v]),...g.slice(1)]}
 function livOf(id,i){const L=livList(id);return L[(i|0)%L.length]||L[0]}
 let CUR_LIV=null;   // set while a plane is being built
 const _lc1=new THREE.Color(),_lc2=new THREE.Color();
