@@ -10,7 +10,7 @@ Want your own server with a kills/deaths leaderboard? See [server/README.md](ser
 
 ## Controls
 W/S pitch · A/D roll · Q/E rudder · Shift/Ctrl throttle (collective in helicopters) · F/V flaps · G gear · B brakes (airbrake in the air) · K Cobra (fighters) · C camera · R reset · Esc menu
-Combat: Space guns · X missile · J bomb · L flares · N night vision · O O eject · T AC-130 gunship orbit
+Combat: Space guns · X missile · J bomb · 1 switch missile · 2 switch bomb · L flares · N night vision · O O eject · T AC-130 gunship orbit
 
 ## Weather & settings
 - Weather (Clear, Overcast, Rain, Snow, Fog) and time of day (Day, Dawn, Sunset, Night) are separate, so you can mix them — e.g. rain at sunset or fog at night. Change either any time from the pause menu.
@@ -93,3 +93,10 @@ Combat: Space guns · X missile · J bomb · L flares · N night vision · O O e
 ## Liveries & airbrakes
 - Pick a **livery** under the aircraft list in the menu. Every aircraft has two or three liveries made just for it (marked ★ — e.g. the F-16's Demo Team and Tiger Meet, the F-22's Checker Tail, the Chinook's Firefighter), plus the shared ones. Fighters and the B-2/AC-130 get camo schemes (Aggressor Blue, Desert, Arctic, Black Ops, Jungle, Show Red, Navy Gray); civil planes get color schemes; the military helicopters get Desert Tan, Navy Gray, Rescue, Night Black and Coast Guard Orange. Your choice is saved per aircraft, and other players see it.
 - Hold **B** (BRAKE on touch) in the air for the **airbrake**: the F-15E and F/A-18 raise the big panel on the back; the F-16, F-22, A-10 and B-2 split their ailerons open like a clamshell. It adds a lot of drag to slow down fast.
+
+## Weapons & loadouts
+- New detailed models: AIM-9X Sidewinder, AIM-120 AMRAAM, AGM-65 Maverick, AGM-114 Hellfire, Mk-82, GBU-12 Paveway II and GBU-31 JDAM. Missiles fly with a motor flame; GBU-12 tail wings unfold after release.
+- **Loadout** (menu, next to Livery → EDIT): choose how many of each weapon your aircraft carries, within its weight limit. Saved per aircraft; applies when you start, respawn or rearm. The weapons hang on the pylons and disappear as you fire them.
+- Each weapon behaves differently: Sidewinder (short range, agile, fooled by flares), AMRAAM (7.5 km lock, harder to decoy), Maverick and Hellfire (lock ground targets), Mk-82 (unguided — use the pipper), GBU-12 (laser-guided to your lock), JDAM (GPS: hits your lock or the pipper point, huge blast).
+- In flight: **1** switches missile type, **2** switches bomb type (MSL ▸ / BMB ▸ on touch). The HUD shows what's selected.
+- Who carries what: F-16 / F/A-18 (Sidewinder, AMRAAM, Maverick, Mk-82, GBU-12), F-22 (Sidewinder, AMRAAM, GBU-12), A-10 (Sidewinder, Maverick, Mk-82, GBU-12), F-15E (all but Hellfire), B-2 (Mk-82, GBU-12, JDAM), Apache (Hellfire, Sidewinder).
