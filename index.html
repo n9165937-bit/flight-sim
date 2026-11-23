@@ -199,7 +199,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
   <div id="marker" class="hidden"><div class="d"></div><div class="n" id="markn"></div></div>
   <div id="help" class="panel hidden">
     <kbd>W</kbd>/<kbd>S</kbd> pitch · <kbd>A</kbd>/<kbd>D</kbd> roll · <kbd>Q</kbd>/<kbd>E</kbd> rudder<br>
-    <kbd>Shift</kbd>/<kbd>Ctrl</kbd> throttle · <kbd>F</kbd>/<kbd>V</kbd> flaps · <kbd>G</kbd> gear · <kbd>B</kbd> brakes · <kbd>K</kbd> Cobra<br>
+    <kbd>Shift</kbd>/<kbd>Ctrl</kbd> throttle · <kbd>F</kbd>/<kbd>V</kbd> flaps · <kbd>G</kbd> gear · <kbd>B</kbd> brakes / airbrake · <kbd>K</kbd> Cobra<br>
     <kbd>C</kbd> camera · drag mouse to look · <kbd>M</kbd> map · <kbd>R</kbd> reset · <kbd>O</kbd><kbd>O</kbd> eject · <kbd>T</kbd> AC-130 orbit · <kbd>Esc</kbd> menu
   </div>
   <div id="actbtns"><div class="frow"><button class="ibtn" id="bfup" title="Flaps up (V)">▲</button><div id="bflap"><span id="bflt">FLAPS UP</span><i><b id="bflb"></b></i></div><button class="ibtn" id="bfdn" title="Flaps down (F)">▼</button></div><button class="ibtn" id="bgear">GEAR DOWN</button><button class="ibtn" id="bcobra">COBRA (K)</button><button class="ibtn hidden" id="bnvg">NIGHT VISION (N)</button><button class="ibtn hidden" id="bgs">GUNSHIP ORBIT (T)</button></div>
@@ -227,6 +227,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
     <button class="mbtn" id="resume"><b>▶ Resume flight</b><span>Back to where you left off</span></button>
     <div class="sec">AIRCRAFT</div>
     <div class="planes" id="planes"></div>
+    <div class="opts"><label>Livery <select id="selLiv"></select></label></div>
     <div class="sec">CONDITIONS</div>
     <div class="opts">
       <label>Airport <select id="selApt"></select></label>
@@ -259,7 +260,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
         <div>Flaps down / up<span><kbd>F</kbd> <kbd>V</kbd></span></div>
         <div>Landing gear up / down<span><kbd>G</kbd></span></div>
         <div>Cobra maneuver (fighters)<span><kbd>K</kbd></span></div>
-        <div>Wheel brakes (hold)<span><kbd>B</kbd></span></div>
+        <div>Wheel brakes / airbrake in the air (hold)<span><kbd>B</kbd></span></div>
         <div>Chase / cockpit cam<span><kbd>C</kbd></span></div>
         <div>Night vision (military, cockpit, night)<span><kbd>N</kbd></span></div>
         <div>Combat: guns / missile / flares / bomb<span><kbd>Space</kbd> <kbd>X</kbd> <kbd>L</kbd> <kbd>J</kbd></span></div>
@@ -318,7 +319,7 @@ const SPECS={
   b2:{name:'B-2 Spirit',type:'STEALTH BOMBER',desc:'A 52 m flying wing. Slow to turn, no guns, 16 bombs. Sneak in, drop, get out.',
     bomber:true,cockpitVis:true,retract:true,vmaxJ:950,machV:250,gmax:2.5,ceil:15000,spoolRate:.6,mass:80000,S:478,maxT:340000,jet:true,cl0:.1,cla:3.2,flapCL:.15,stall:20,cd0:.012,k:.035,flapCD:.02,roll:.6,pitch:.5,yaw:.22,resp:2,gear:2.6,vsLim:4,vk:220,cruise:230,cam:62,camUp:13,eye:[1.6,5.5],span:52.4,bars:[75,15,70]},
   ac130:{name:'AC-130J Ghostrider',type:'GUNSHIP · 4 TURBOPROPS',desc:'Flying artillery. Press T to start a gunship orbit, then aim the side guns: SPACE 30 mm, X 105 mm.',
-    gunship:true,cockpitVis:true,retract:true,mass:55000,S:162,maxT:150000,vmax:190,cl0:.3,cla:5.2,flapCL:.6,stall:15,cd0:.028,k:.045,flapCD:.05,gmax:3,roll:.6,pitch:.55,yaw:.3,resp:2.2,gear:2.3,vsLim:5,vk:60,cruise:140,cam:58,camUp:12,eye:[1.4,11.5],span:40.4,blades:4,bars:[45,20,65]},
+    gunship:true,sbCD:.015,cockpitVis:true,retract:true,mass:55000,S:162,maxT:150000,vmax:190,cl0:.3,cla:5.2,flapCL:.6,stall:15,cd0:.028,k:.045,flapCD:.05,gmax:3,roll:.6,pitch:.55,yaw:.3,resp:2.2,gear:2.3,vsLim:5,vk:60,cruise:140,cam:58,camUp:12,eye:[1.4,11.5],span:40.4,blades:4,bars:[45,20,65]},
   bell407:{name:'Bell 407',type:'LIGHT HELICOPTER',desc:'Nimble single-engine heli. Hover, land on peaks, fly the canyons low.',
     heli:true,skids:true,mass:2300,hov:.55,cx:1.6,pitch:1.25,roll:1.5,yaw:1.5,resp:4,gear:1.43,vsLim:3.5,cruise:55,cam:17,camUp:4,eye:[.55,1.9],span:10.7,bars:[35,80,55]},
   uh60:{name:'UH-60 Black Hawk',type:'UTILITY HELICOPTER',desc:'Big twin-engine workhorse. Stable and powerful, a bit slower to turn.',
@@ -1348,10 +1349,11 @@ function hgMat(k){if(HG_MATS[k])return HG_MATS[k];const S=(c,m,r,o={})=>new THRE
     gold:new THREE.MeshPhysicalMaterial({color:0xd8b04a,metalness:.95,roughness:.04,transparent:true,opacity:.55,clearcoat:1}),smoke:new THREE.MeshPhysicalMaterial({color:0x2a3844,metalness:.5,roughness:.03,transparent:true,opacity:.45,clearcoat:1})};
   Object.assign(HG_MATS,M);return HG_MATS[k]}
 const HG_CACHE={};
-function hgGeometry(key,lo){const ck=key+(lo?'_lo':'');if(HG_CACHE[ck])return HG_CACHE[ck];const built=HG.buildAircraft(key,lo?.42:1);
+function hgGeometry(key,lo,lv){const ck=key+(lo?'_lo':'')+(lv&&lv[1]?'_'+lv[0]:'');if(HG_CACHE[ck])return HG_CACHE[ck];const bk=key+(lo?'_lo':'')+'_raw';const built=HG_CACHE[bk]||(HG_CACHE[bk]=HG.buildAircraft(key,lo?.42:1));
+  const A=lv&&lv[1]?Object.assign({},built.A,{scheme:Object.assign({},built.A.scheme,lv[1],{radome:built.A.scheme.radome&&[built.A.scheme.radome[0],lv[1].a<0x555555?0x2a2d31:built.A.scheme.radome[1]]})}):built.A;
   const parts=built.parts.map(p=>{const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p.g.pos,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(p.g.nrm,3));
-    geo.setAttribute('uv',new THREE.Float32BufferAttribute(p.g.uv,2));if(p.mat==='paint'){const c=HG.paintColors(built.A,p.g);for(let i=0;i<c.length;i++)c[i]=Math.min(1,c[i]*1.25+.02);geo.setAttribute('color',new THREE.Float32BufferAttribute(c,3))}geo.setIndex(p.g.idx);return{geo,mat:p.mat,grp:p.grp,name:p.name}});
-  return HG_CACHE[ck]={parts,axisY:built.axisY,noz:built.noz,tips:built.tips,seats:built.seats,A:built.A}}
+    geo.setAttribute('uv',new THREE.Float32BufferAttribute(p.g.uv,2));if(p.mat==='paint'){const c=HG.paintColors(A,p.g);for(let i=0;i<c.length;i++)c[i]=Math.min(1,c[i]*1.25+.02);geo.setAttribute('color',new THREE.Float32BufferAttribute(c,3))}geo.setIndex(p.g.idx);return{geo,mat:p.mat,grp:p.grp,name:p.name}});
+  return HG_CACHE[ck]={parts,axisY:built.axisY,noz:built.noz,tips:built.tips,seats:built.seats,A}}
 
 // split the Hangar wings/tails into moving control surfaces (cached per model): ailerons + flaps, stabilators or elevators, rudders
 function hgSurfaces(H,key){if(H.csx)return H.csx;const out={split:{}};
@@ -1439,14 +1441,15 @@ function skinTex(hex,camo){const c=document.createElement('canvas');c.width=c.he
 function latheZ(pts,seg=24){const g=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg);g.rotateX(Math.PI/2);return g} // profile [radius,z]; axis = +z
 const GLASS=()=>new THREE.MeshPhysicalMaterial({color:0x1a2a3a,metalness:.1,roughness:.04,transparent:true,opacity:.42,clearcoat:1,clearcoatRoughness:.05,envMapIntensity:1.6,depthWrite:false});
 const GOLDGLASS=()=>new THREE.MeshPhysicalMaterial({color:0x8a6a20,metalness:.6,roughness:.06,transparent:true,opacity:.5,clearcoat:1,envMapIntensity:1.8,depthWrite:false});
-const STD=(c,metal=.15,rough=.45)=>new THREE.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
+const STD=(c,metal=.15,rough=.45)=>new THREE.MeshStandardMaterial({color:livSolid(c),metalness:metal,roughness:rough});
 // livery canvas laid out (x = along fuselage nose→tail, y = around: 0 top, .25 right, .5 belly, .75 left)
 function livery(base,draw){const W=2048,Hh=512,c=document.createElement('canvas');c.width=W;c.height=Hh;const g=c.getContext('2d');
+  if(CUR_LIV&&!CUR_LIV.orig){CUR_LIV.orig=base;base=CUR_LIV.base}const MC=livMapC;
   g.fillStyle=base;g.fillRect(0,0,W,Hh);
   const L={g,W,H:Hh,
-    band(u0,u1,v0,v1,col){g.fillStyle=col;g.fillRect(v0*W,u0*Hh,(v1-v0)*W,(u1-u0)*Hh)},
+    band(u0,u1,v0,v1,col){g.fillStyle=MC(col);g.fillRect(v0*W,u0*Hh,(v1-v0)*W,(u1-u0)*Hh)},
     sym(u0,u1,v0,v1,col){this.band(u0,u1,v0,v1,col);this.band(1-u1,1-u0,v0,v1,col)},
-    poly(pts,col){g.fillStyle=col;g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0]*W,p[1]*Hh):g.moveTo(p[0]*W,p[1]*Hh));g.closePath();g.fill();
+    poly(pts,col){g.fillStyle=MC(col);g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0]*W,p[1]*Hh):g.moveTo(p[0]*W,p[1]*Hh));g.closePath();g.fill();
       g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0]*W,(1-p[1])*Hh):g.moveTo(p[0]*W,(1-p[1])*Hh));g.closePath();g.fill()},
     win(v,u,w,h,col='#16222e',r=.4){for(const uu of[u,1-u]){g.fillStyle=col;const x=v*W,y=uu*Hh,ww=w*W,hh=h*Hh,rr=Math.min(ww,hh)*r;g.beginPath();
       g.moveTo(x-ww/2+rr,y-hh/2);g.arcTo(x+ww/2,y-hh/2,x+ww/2,y+hh/2,rr);g.arcTo(x+ww/2,y+hh/2,x-ww/2,y+hh/2,rr);g.arcTo(x-ww/2,y+hh/2,x-ww/2,y-hh/2,rr);g.arcTo(x-ww/2,y-hh/2,x+ww/2,y-hh/2,rr);g.fill();
@@ -1464,7 +1467,32 @@ function mfdTex(){const c=document.createElement('canvas');c.width=256;c.height=
     g.beginPath();if(i===0){g.arc(x+36,46,24,0,Math.PI*2);g.moveTo(x+12,46);g.lineTo(x+60,46)}else if(i===1){g.fillStyle='#2a6ad8';g.fillRect(x+6,16,60,30);g.fillStyle='#8a5a2b';g.fillRect(x+6,46,60,30);g.moveTo(x+20,46);g.lineTo(x+52,46)}else{for(let k=0;k<5;k++){g.moveTo(x+10,22+k*11);g.lineTo(x+20+Math.random()*40,22+k*11)}}g.stroke()}
   const t=new THREE.CanvasTexture(c);return t}
 
-function makePlane(id,lo){
+/* speed brakes: which jets open split ailerons, which have a big panel on the back */
+const SBSPLIT={f16:1,f22:1,a10:1,b2:1},SBDORSAL={f15e:[3.0,1.25,2.6,.8],f18:[4.2,.85,1.5,.9]};
+/* ---------------- liveries ---------------- */
+function myLiv(id){return +(lsGet('skyward_liv_'+id)||0)}
+function livUI(){const el=typeof $==='function'&&$('selLiv');if(!el||!SP)return;el.innerHTML=livList(SP.id).map((l,i)=>`<option value="${i}">${l[0]}</option>`).join('');el.value=myLiv(SP.id);
+  el.onchange=()=>{lsSet('skyward_liv_'+SP.id,el.value);selectPlane(SP.id)}}
+// jets with real-scale models: camouflage colours; everything else: base colour + two accent colours swapped into the painted texture
+const LIV_JET=[['Factory',null],['Aggressor Blue',{a:0x7f9bb5,b:0x3f5a76,under:0xa8b8c6,camo:.35}],['Desert',{a:0xc2a77a,b:0x7a5d3a,under:0xd8c9a6,camo:.3}],
+  ['Arctic',{a:0xe6e9ec,b:0x9aa3ab,under:null,camo:.3}],['Black Ops',{a:0x2a2d31,b:0x1e2023,under:null,camo:.1}],['Jungle',{a:0x5b6b45,b:0x3a4430,under:0x8c9488,camo:.3}],
+  ['Show Red',{a:0xc8202a,b:0xf2f2f0,under:0x1f4f8f,camo:.18}],['Navy Gray',{a:0x7d8791,b:0x6a737c,under:0xb7bec5,camo:.12}]];
+const LIV_CIV=[['Factory',null],['Racing Red',{base:'#c8202a',acc:['#f4f4f1','#1d1d1f']}],['Ocean Blue',{base:'#1f4f8f',acc:['#f4f4f1','#f2b632']}],['Sunburst',{base:'#f2c230',acc:['#1d1d1f','#d8462a']}],
+  ['Midnight',{base:'#1c1f24',acc:['#d9a441','#8a8f96']}],['Lime',{base:'#e9ecef',acc:['#5fbf2a','#1d1d1f']}],['Orange',{base:'#ef7a1a',acc:['#1d1d1f','#f4f4f1']}]];
+const LIV_MILH=[['Factory',null],['Desert Tan',{base:'#b59a6b',acc:['#8c7550','#6e5c3f']}],['Navy Gray',{base:'#6d7680',acc:['#5c646d','#4b525a']}],['Rescue',{base:'#e9e9e6',acc:['#c8202a','#c8202a']}],
+  ['Night Black',{base:'#23262a',acc:['#2e3237','#3a3f45']}],['Coast Guard Orange',{base:'#e2641e',acc:['#f4f4f1','#1d1d1f']}]];
+function livList(id){return HG_MAP[id]?LIV_JET:['uh60','ah64','chinook'].includes(id)?LIV_MILH:LIV_CIV}
+function livOf(id,i){const L=livList(id);return L[(i|0)%L.length]||L[0]}
+let CUR_LIV=null;   // set while a plane is being built
+const _lc1=new THREE.Color(),_lc2=new THREE.Color();
+function livHex(c){try{_lc1.set(c);return'#'+_lc1.getHexString()}catch(e){return null}}
+function livNear(a,b){_lc1.set(a);_lc2.set(b);return Math.abs(_lc1.r-_lc2.r)+Math.abs(_lc1.g-_lc2.g)+Math.abs(_lc1.b-_lc2.b)<.12}
+function livMapC(col){const L=CUR_LIV;if(!L||typeof col!=='string'||col.startsWith('rgba'))return col;const h=livHex(col);if(!h)return col;const lum=_lc1.r*.3+_lc1.g*.59+_lc1.b*.11;
+  if(lum<.18)return col;if(L.orig&&livNear(h,L.orig))return L.base;let k=L.seen.indexOf(h);if(k<0){L.seen.push(h);k=L.seen.length-1}return k<2?L.acc[k]:col}
+// solid parts painted the same as the fuselage (wings, tails) follow the livery too
+function livSolid(c){const L=CUR_LIV;if(!L||!L.orig||typeof c!=='number')return c;return livNear(c,L.orig)?new THREE.Color(L.base).getHex():c}
+function makePlane(id,lo,liv){const lv=livOf(id,liv);CUR_LIV=lv[1]&&!HG_MAP[id]?Object.assign({},lv[1],{seen:[],orig:null}):null;try{return makePlane0(id,lo,lv)}finally{CUR_LIV=null}}
+function makePlane0(id,lo,lv){
   const g=new THREE.Group(),props=[],discs=[],gearParts=[],flames=[],cs=[];
   const fx={flapsM:[],beacons:[],strobes:[],tips:[],pilotM:[],rotors:[],rdiscs:[]};
   const dark=STD(0x1c1e22,.2,.7),grey=STD(0x8a9097,.6,.35),chrome=STD(0xd8dde2,.95,.18),tire=STD(0x141414,0,.85),rubber=STD(0x2a2a2a,0,.8),nozM=STD(0x4a4d52,.85,.4),hot=new THREE.MeshStandardMaterial({color:0x2a1408,emissive:0x5a1e08,roughness:.6,metalness:.4});
@@ -1534,14 +1562,21 @@ function makePlane(id,lo){
   const glassC=(keys,mat,R=32,sub=5)=>{add(loftGeo(keys,R,sub),mat);add(loftGeo(keys.map(k=>[k[0],k[1]*1.05+.03,.07,.05,k[4],k[5]]),R,sub),STD(0x24282d,.4,.5))};
   const MAT={};
 
-  if(HG_MAP[id]){lo=lo||(typeof GFX!=='undefined'&&GFX.mode==='low');const H=hgGeometry(HG_MAP[id],lo),A=H.A;
+  if(HG_MAP[id]){lo=lo||(typeof GFX!=='undefined'&&GFX.mode==='low');const H=hgGeometry(HG_MAP[id],lo,lv),A=H.A;
     const paintM=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,map:hgPanelTex(),metalness:.28,roughness:.62});
     const root=new THREE.Group();root.userData.hgRoot=1;root.rotation.y=Math.PI;root.position.y=-H.axisY;g.add(root);
     const CS=lo?null:hgSurfaces(H,HG_MAP[id]);
     for(const p of H.parts){if(p.grp==='stores'&&lo)continue;const mt=p.mat==='paint'?paintM:p.mat==='canopy'?hgMat(A.canopy):hgMat(p.mat);const sp=CS&&CS.split[p.name];
       const m=new THREE.Mesh(sp?sp.geo:p.geo,mt);root.add(m);if(p.grp==='gear')gearParts.push(m);
       if(sp)for(const c of sp.cs){const pv=new THREE.Group();pv.position.copy(c.A);pv.rotation.order='YZX';pv.rotation.y=-Math.atan2(c.d.z,c.d.x);pv.rotation.z=Math.atan2(c.d.y,Math.hypot(c.d.x,c.d.z));pv.userData.base=0;
-        pv.add(new THREE.Mesh(c.geo,mt));root.add(pv);cs.push({p:pv,kind:c.kind,sgn:1,side:c.side});if(c.kind==='flap')fx.flapsM.push(pv)}}
+        pv.add(new THREE.Mesh(c.geo,mt));root.add(pv);cs.push({p:pv,kind:c.kind,sgn:1,side:c.side});if(c.kind==='flap')fx.flapsM.push(pv);
+        // split-aileron speed brakes (open like a clamshell): a second copy hinges the other way
+        if(c.kind==='ail'&&SBSPLIT[id]){const tw=pv.clone();root.add(tw);(fx.sbSplit=fx.sbSplit||[]).push({src:pv,tw})}}}
+    if(!lo&&SBDORSAL[id]){const[ofs,wd,ln,ang]=SBDORSAL[id],st=H.seats[H.seats.length-1],z0=st[2]-ofs;let ty=0;
+      for(const p of H.parts)if(p.mat==='paint'){const a=p.geo.attributes.position.array;for(let i=0;i<a.length;i+=3)if(Math.abs(a[i])<.35&&Math.abs(a[i+2]-(z0-ln/2))<.4&&a[i+1]>ty)ty=a[i+1]}
+      const pv=new THREE.Group();pv.position.set(0,ty+.02,z0);const pl=new THREE.Mesh(new THREE.BoxGeometry(wd,.06,ln),paintM);pl.geometry.translate(0,.03,-ln/2);
+      const cc=new Float32Array(pl.geometry.attributes.position.count*3);const sc=new THREE.Color(A.scheme.a).multiplyScalar(1.15);for(let i=0;i<cc.length;i+=3){cc[i]=sc.r;cc[i+1]=sc.g;cc[i+2]=sc.b}pl.geometry.setAttribute('color',new THREE.BufferAttribute(cc,3));
+      pv.add(pl);const inner=new THREE.Mesh(new THREE.BoxGeometry(wd*.9,.02,ln*.95),STD(0x8a3a2a,.3,.6));inner.position.set(0,-.01,-ln/2);pv.add(inner);root.add(pv);fx.sbDorsal={p:pv,ang}}
     for(const[x,y,z,r]of H.noz){const fg=new THREE.ConeGeometry(r*.85,r*9,14,1,true);fg.translate(0,r*4.5,0);fg.rotateX(-Math.PI/2);
       const fl=new THREE.Mesh(fg,new THREE.MeshBasicMaterial({color:0xff9a3a,transparent:true,opacity:.75,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));fl.position.set(x,y,z);fl.visible=false;root.add(fl);flames.push(fl);
       const core=new THREE.ConeGeometry(r*.5,r*5,10,1,true);core.translate(0,r*2.5,0);core.rotateX(-Math.PI/2);fl.add(new THREE.Mesh(core,new THREE.MeshBasicMaterial({color:0xbfe2ff,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending})))}
@@ -1892,7 +1927,7 @@ if(DES.parkTodo)for(const[id,x,z,r]of DES.parkTodo){const m=makePlane(id,true);m
 if(OCEAN.parkTodo)for(const[G,id,x,z,r]of OCEAN.parkTodo){const m=makePlane(id,true);m.g.position.set(x,20+SPECS[id].gear,z);m.g.rotation.y=r;for(const q of m.pilotM)q.visible=false;G.add(m.g)}
 let plane=makePlane('skylark');scene.add(plane.g);
 const shadow=new THREE.Mesh(new THREE.CircleGeometry(5.5,20),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.3,depthWrite:false}));shadow.rotation.x=-Math.PI/2;scene.add(shadow);
-function selectPlane(id){SP=SPECS[id];GEAR=SP.gear;scene.remove(plane.g);plane=makePlane(id);GEAR=SP.gear;scene.add(plane.g);makeCockpit(id);lsSet('skyward_plane',id);
+function selectPlane(id){SP=SPECS[id];GEAR=SP.gear;scene.remove(plane.g);plane=makePlane(id,false,myLiv(id));livUI();GEAR=SP.gear;scene.add(plane.g);makeCockpit(id);lsSet('skyward_plane',id);
   document.querySelectorAll('.pc').forEach(e=>e.classList.toggle('sel',e.dataset.id===id));$('rpml').textContent=SP.heli?'ROTOR':SP.jet?'N1':'RPM';$('thrl').textContent=SP.heli?'COL':'THR';$('bcobra').classList.toggle('hidden',!SP.fighter);for(const n of['tgs','bgs'])$(n)&&$(n).classList.toggle('hidden',!SP.gunship);if($('tcob'))$('tcob').classList.toggle('hidden',!SP.fighter);updateBest();}
 
 /* ---------------- wind ---------------- */
@@ -1941,7 +1976,8 @@ function step(dt){
   const DL=P.dmg&&P.dmg.lost||{};if(DL.wingL||DL.wingR)CL*=1-.45*((DL.wingL?1:0)+(DL.wingR?1:0));
   P.stall=!P.onGround&&speed>5&&Math.abs(aoa)>stallA-.5*DEG&&!P.cobra;
   const stalled=Math.abs(aoa)>stallA;
-  let CD=SP.cd0+SP.k*CL*CL+fl*SP.flapCD+(stalled?.06:0)+.25*Math.abs(Math.sin(beta));
+  P.sb=clamp((P.sb||0)+((P.brake&&!SP.heli)?1:-1)*dt*1.6,0,1);
+  let CD=SP.cd0+SP.k*CL*CL+fl*SP.flapCD+(stalled?.06:0)+.25*Math.abs(Math.sin(beta))+P.sb*(SP.sbCD!=null?SP.sbCD:SP.jet?.065:.022);
   const mv=SP.machV||170;if(SP.jet&&speed>mv)CD+=((speed-mv)/60)**2*.05;
   if(Math.abs(aoa)>stallA+10*DEG)CD+=1.1*Math.sin(aoa)**2;
   if(SP.retract)CD+=.012*P.gearT;
@@ -2486,7 +2522,7 @@ function wingDown(w){if(!w.alive)return;w.alive=false;const agl=w.pos.y-Math.max
   setTimeout(()=>{if(!DF.on)return;const i=WING.indexOf(w);if(i>=0){WING.splice(i,1);const nw=wingSpawn(i);nw.slot=w.slot;WING.splice(WING.indexOf(nw),1);WING.splice(i,0,nw)}},20000)}
 function dfClear(){ejReset();document.body.classList.remove('df');for(const w of WING)if(w.alive)scene.remove(w.model.g);WING.length=0;if(P.dmg&&Object.keys(P.dmg.lost).length)dfFresh();clearDebris();stClearUnits();ST.on=false;DF.strike=false;for(const b of DF.bombs)scene.remove(b.m);DF.bombs=[];for(const b of DF.bots)scene.remove(b.model.g);DF.bots=[];for(const m of DF.msl){sfxLoopEnd(m.snd);scene.remove(m.m)}DF.msl=[];DF.bul=[];for(const s of DF.sm)scene.remove(s.m);DF.sm=[];DF.flr.forEach(f=>scene.remove(f.m));DF.flr=[];
   DF.on=false;$('dfhud').classList.add('hidden');$('dfmk').innerHTML='';for(const n of['tfire','tmsl','tflr','tbmb'])$(n)&&$(n).classList.add('hidden')}
-function dfFresh(){P.dmg=newDmg();DF.lostMask=0;if(plane.g.userData.broken){scene.remove(plane.g);plane=makePlane(SP.id);scene.add(plane.g)}}
+function dfFresh(){P.dmg=newDmg();DF.lostMask=0;if(plane.g.userData.broken){scene.remove(plane.g);plane=makePlane(SP.id,false,myLiv(SP.id));scene.add(plane.g)}}
 function dfStart(keep,strike){gsOff();dfFresh();FUEL.on=true;FUEL.f=1;FUEL.out=false;FUEL.bingo=false;if(!TK.on&&SP.jet&&!SP.heli)tkStart(MAP==='ocean'?600:0,0);if(!keep){dfClear();DF.k=0;DF.d=0;DF.feed=[]}document.body.classList.add('df');setTimeout(()=>{if(!DF.on)return;if(!keep||!WING.length)wingStart();else for(const w of WING)if(w.alive){axes();w.pos.copy(P.pos).addScaledVector(_r,w.slot*45).addScaledVector(_f,-40*Math.abs(w.slot));w.f.set(_f.x,0,_f.z).normalize();w.v=P.vel.length()}},0);DF.on=true;DF.hp=100;const w=dfW(SP.id);DF.mslN=w.msl;DF.flrN=w.msl||w.bmb||w.gs?8:0;DF.bmbN=w.bmb;if(strike)DF.strike=true;DF.lock=0;DF.locked=null;DF.resp=0;
   $('dfhud').classList.remove('hidden');for(const n of['tfire','tmsl','tflr','tbmb'])$(n)&&$(n).classList.toggle('hidden',n==='tmsl'?!w.msl:n==='tflr'?!(w.msl||w.bmb||w.gs):n==='tbmb'?!w.bmb:false);
   // spawn somewhere open, high enough
@@ -2503,7 +2539,7 @@ function dfStart(keep,strike){gsOff();dfFresh();FUEL.on=true;FUEL.f=1;FUEL.out=f
 function faceTo(x,z,tx,tz){return Math.atan2(x-tx,z-tz)}
 function dfNeedsRearm(){const w=dfW(SP.id);return DF.hp<100||DF.mslN<w.msl||DF.bmbN<w.bmb||DF.flrN<(w.msl||w.bmb||w.gs?8:0)||(P.dmg&&Object.keys(P.dmg.lost).length>0)||(P.dmg&&(P.dmg.wingL||P.dmg.wingR||P.dmg.tail||P.dmg.engine))||(typeof FUEL!=='undefined'&&FUEL.f<.98)}
 function dfRearm(){const w=dfW(SP.id);DF.rearmed=true;DF.rearm=0;DF.hp=100;DF.mslN=w.msl;DF.bmbN=w.bmb;DF.flrN=w.msl||w.bmb||w.gs?8:0;if(typeof FUEL!=='undefined')FUEL.f=1;
-  if(plane.g.userData.broken){const vis=plane.g.visible;scene.remove(plane.g);plane=makePlane(SP.id);scene.add(plane.g);plane.g.visible=vis}P.dmg=newDmg();DF.lostMask=0;
+  if(plane.g.userData.broken){const vis=plane.g.visible;scene.remove(plane.g);plane=makePlane(SP.id,false,myLiv(SP.id));scene.add(plane.g);plane.g.visible=vis}P.dmg=newDmg();DF.lostMask=0;
   showMsg('REPAIRED & REARMED','Airframe fixed'+(w.msl?' · '+w.msl+' missiles':'')+(w.bmb?' · '+w.bmb+' bombs':'')+' · tanks full','#3cff8a',3000);beep(660,.12,'triangle',.15);setTimeout(()=>beep(990,.15,'triangle',.15),120)}
 function dfFeed(t){DF.feed.unshift({t,ttl:6});DF.feed.length=Math.min(DF.feed.length,5)}
 const _hq=new THREE.Quaternion(),_tmp3=new THREE.Vector3();
@@ -2551,7 +2587,7 @@ function chuteFly(c,dt){c.life-=dt;c.age=(c.age||0)+dt;const G=c.g;
 function botChute(pos,vel){if(CHUTES.length>6)return;const g=chuteModel();g.chute.visible=false;scene.add(g);CHUTES.push({g,p:pos.clone().add(new V3(0,3,0)),v:vel.clone().multiplyScalar(.7).add(new V3(0,30,0)),chute:false,landed:false,life:120,t:0})}
 function ejectStart(auto){if(EJ.on)return;gsOff();const v0=P.vel.clone(),up=_u.clone();
   plane.g.position.copy(P.pos);plane.g.quaternion.copy(P.q);makeWreck(plane.g,v0,Math.random()<.5?-1:1,SP.span/11);
-  plane=makePlane(SP.id);scene.add(plane.g);plane.g.visible=false;            // fresh airframe, hidden until you respawn
+  plane=makePlane(SP.id,false,myLiv(SP.id));scene.add(plane.g);plane.g.visible=false;            // fresh airframe, hidden until you respawn
   if(!EJ.g){EJ.g=chuteModel()}const G=EJ.g;G.chute.visible=false;G.chute.scale.setScalar(1);G.chute.rotation.set(0,0,0);G.chute.position.set(0,0,0);G.seat.visible=true;G.visible=true;scene.add(G);
   EJ.on=true;EJ.c={g:G,p:P.pos.clone().addScaledVector(up,2.5),v:v0.multiplyScalar(.8).addScaledVector(up,36),chute:false,landed:false,life:1e9,me:true};EJ.p=EJ.c.p;EJ.v=EJ.c.v;
   P.crashed=true;P.w.set(0,0,0);P.throttle=P.spool=0;sfx('launch',P.pos);beep(260,.25,'sawtooth',.12);
@@ -3067,7 +3103,7 @@ function updateHUD(dt){
   const fmov=Math.abs(P.flapT-P.flaps)>.02;$('flv').textContent=FLAPLBL[P.flaps]+(fmov?'…':'');$('flv').classList.toggle('on',P.flaps>0);
   $('bflt').textContent='FLAPS '+FLAPLBL[P.flaps]+(fmov?' …':'');$('bflb').style.width=(P.flapT/3*100)+'%';
   $('rpmv').textContent=SP.heli?Math.round(P.rpm*100)+'%':SP.jet?Math.round(22+P.rpm*78)+'%':Math.round(P.rpm*2700);
-  $('brkv').innerHTML='BRAKE <b class="'+(P.brake?'on':'')+'">'+(P.brake?'ON':'OFF')+'</b>';
+  $('brkv').innerHTML=(P.onGround||SP.heli?'BRAKE':'AIRBRAKE')+' <b class="'+(P.brake||P.sb>.05?'on':'')+'">'+(P.sb>.95&&!P.onGround?'OUT':P.sb>.05&&!P.onGround?Math.round(P.sb*100)+'%':P.brake?'ON':'OFF')+'</b>';
   $('gv').textContent=P.g.toFixed(1);
   $('fuelr').classList.toggle('hidden',!FUEL.on);if(FUEL.on){const fv=$('fuelv');fv.textContent=Math.round(FUEL.f*100)+'%'+(TK.contact?' ▲':'');fv.style.color=FUEL.f<.15?'#ff5a4a':FUEL.f<.3?'#ffd23a':''}
   $('wndv').textContent=WIND.kt?String(WIND.dir).padStart(3,'0')+'/'+Math.round(P.wind.length()*1.944):'CALM';
@@ -3127,7 +3163,9 @@ function updateVisuals(dt){
    for(const c of plane.cs){let a=0;
     if(c.kind==='flap')a=fa*c.sgn;else if(c.kind==='ail')a=c.sgn*(-c.side*IN.roll)*k.ail;else if(c.kind==='flaperon')a=c.sgn*(fa*.7-c.side*IN.roll*k.ail);
     else if(c.kind==='elev')a=c.sgn*(-IN.pitch)*k.elev;else if(c.kind==='stab')a=-IN.pitch*k.elev+c.side*IN.roll*.12;else if(c.kind==='rud')a=IN.yaw*k.rud;
-    c.p.rotation.x=(c.p.userData.base||0)+a}}
+    c.p.rotation.x=(c.p.userData.base||0)+a}
+   if(plane.sbSplit)for(const t of plane.sbSplit){t.tw.rotation.x=t.src.rotation.x-P.sb*.75;t.src.rotation.x+=P.sb*.75}
+   if(plane.sbDorsal)plane.sbDorsal.p.rotation.x=P.sb*plane.sbDorsal.ang}
   const tt=performance.now()/1000;if(CITYM)for(const b of CITYM.beacons)b.visible=(tt%1.5)<.75;if(OCM)OCM.spin.forEach((s,i)=>i%2?s.visible=(tt%1.4)<.7:s.rotation.y=tt*1.6);for(const b of plane.beacons)b.visible=(tt%1.3)<.18;for(const st of plane.strobes)st.visible=(tt%1.6)<.05||((tt%1.6)>.16&&(tt%1.6)<.21);
   updateTrails();
   const gh=Math.max(groundAt(P.pos.x,P.pos.z),0),agl=P.pos.y-gh;

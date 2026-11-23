@@ -108,12 +108,13 @@
     const type = SPECS[d.p] ? d.p : 'skylark';
     const name = String(d.n || 'Pilot').slice(0, 14);
     let o = others[id];
-    if (!o || o.type !== type || o.name !== name) {
+    const lv = num(d.lv) | 0;
+    if (!o || o.type !== type || o.name !== name || o.lv !== lv) {
       if (o) { scene.remove(o.model.g); scene.remove(o.tag); }
-      const model = makePlane(type, true); scene.add(model.g);
+      const model = makePlane(type, true, lv); scene.add(model.g);
       const tag = nameTag(name); scene.add(tag);
       model.g.position.set(num(d.x), num(d.y), num(d.z));
-      o = others[id] = { model, tag, type, name };
+      o = others[id] = { model, tag, type, name, lv };
       setBadge();
     }
     o.tPos = new THREE.Vector3(num(d.x), num(d.y), num(d.z));
@@ -122,7 +123,7 @@
     o.tTime = performance.now(); o.gear = d.g ? 1 : 0; o.ab = num(d.ab);
     o.df = d.m === 1; o.hp = num(d.hp); o.fire = d.f === 1;
     { const lp = num(d.lp) | 0, had = o.lp | 0; if (lp !== had) { if (lp & ~had) ['wingL', 'wingR', 'tail', 'engine'].forEach((k, i) => { if (lp & ~had & (1 << i)) detachPart(o.model, k, o.tVel || new THREE.Vector3()); });
-      if (!lp && had) { scene.remove(o.model.g); o.model = makePlane(o.type, true); scene.add(o.model.g); } o.lp = lp; } }
+      if (!lp && had) { scene.remove(o.model.g); o.model = makePlane(o.type, true, o.lv); scene.add(o.model.g); } o.lp = lp; } }
   });
 
   // ---- send ----
@@ -137,7 +138,7 @@
       qx: r4(P.q.x), qy: r4(P.q.y), qz: r4(P.q.z), qw: r4(P.q.w),
       vx: r2(P.vel.x), vy: r2(P.vel.y), vz: r2(P.vel.z), g: P.gearT > .5 ? 1 : 0,
       ab: SP.ab ? r2(Math.max(0, (P.spool - .6) / .4)) : 0,
-      m: DF.on && !DF.strike ? 1 : 0, lp: DF.on ? (DF.lostMask || 0) : 0, hp: DF.on ? Math.round(DF.hp) : 100, f: DF.on && DF.netFire > 0 ? 1 : 0
+      lv: myLiv(SP.id), m: DF.on && !DF.strike ? 1 : 0, lp: DF.on ? (DF.lostMask || 0) : 0, hp: DF.on ? Math.round(DF.hp) : 100, f: DF.on && DF.netFire > 0 ? 1 : 0
     }));
   }, 1000 / SEND_HZ);
   addEventListener('beforeunload', () => { try { client.publish(BASE + myId, ''); client.end(true); } catch (e) {} });

@@ -9,7 +9,7 @@ Open the game, type a pilot name in the menu, and fly. Everyone on the same map 
 Want your own server with a kills/deaths leaderboard? See [server/README.md](server/README.md) (free Cloudflare Worker, about 5 minutes).
 
 ## Controls
-W/S pitch · A/D roll · Q/E rudder · Shift/Ctrl throttle (collective in helicopters) · F/V flaps · G gear · B brakes · K Cobra (fighters) · C camera · R reset · Esc menu
+W/S pitch · A/D roll · Q/E rudder · Shift/Ctrl throttle (collective in helicopters) · F/V flaps · G gear · B brakes (airbrake in the air) · K Cobra (fighters) · C camera · R reset · Esc menu
 Combat: Space guns · X missile · J bomb · L flares · N night vision · O O eject · T AC-130 gunship orbit
 
 ## Weather & settings
@@ -89,3 +89,7 @@ Combat: Space guns · X missile · J bomb · L flares · N night vision · O O e
 
 ## Desert Base
 - Sahra Air Base with two runways and hardened aircraft shelters, dune fields, an oasis, and a mesa to the north cut by a winding canyon — the Ring Course runs through it.
+
+## Liveries & airbrakes
+- Pick a **livery** under the aircraft list in the menu. Fighters and the B-2/AC-130 get camo schemes (Aggressor Blue, Desert, Arctic, Black Ops, Jungle, Show Red, Navy Gray); civil planes get color schemes; the military helicopters get Desert Tan, Navy Gray, Rescue, Night Black and Coast Guard Orange. Your choice is saved per aircraft, and other players see it.
+- Hold **B** (BRAKE on touch) in the air for the **airbrake**: the F-15E and F/A-18 raise the big panel on the back; the F-16, F-22, A-10 and B-2 split their ailerons open like a clamshell. It adds a lot of drag to slow down fast.
