@@ -1,6 +1,6 @@
 # Skyward — Flight Simulator
 
-A browser flight sim with airplanes from trainers to fighters (Skylark, Vortex, Kestrel, Meridian, PC-12, F-16, F/A-18, F-22, A-10, F-15E, B-2, AC-130J), 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), six maps (Green Valley, Red Rock Canyon, Alpine Peaks, Metro City, Ocean Fleet, Desert Base) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
+A browser flight sim with airplanes from trainers to fighters (Skylark, Vortex, Kestrel, Meridian, PC-12, F-16, F/A-18, F-22, A-10, F-15E, B-2, B-1B, SR-71, AC-130J, P-40), 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), six maps (Green Valley, Red Rock Canyon, Alpine Peaks, Metro City, Ocean Fleet, Desert Base) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
 
 **Play:** https://n9165937-bit.github.io/flight-sim/
 
@@ -100,3 +100,8 @@ Combat: Space guns · M missile · B bomb · F flares · 1 switch missile · 2 s
 - Each weapon behaves differently: Sidewinder (short range, agile, fooled by flares), AMRAAM (7.5 km lock, harder to decoy), Maverick and Hellfire (lock ground targets), Mk-82 (unguided — use the pipper), GBU-12 (laser-guided to your lock), JDAM (GPS: hits your lock or the pipper point, huge blast).
 - In flight: **1** switches missile type, **2** switches bomb type (MSL ▸ / BMB ▸ on touch). The HUD shows what's selected.
 - Loadouts: F-16 / F/A-18 (Sidewinder, AMRAAM, Maverick, Mk-82, GBU-12), F-22 (Sidewinder, AMRAAM, GBU-12), A-10 (Sidewinder, Maverick, Mk-82, GBU-12), F-15E (all but Hellfire), B-2 (Mk-82, GBU-12, JDAM), Apache (Hellfire, Sidewinder).
+
+## B-1B Lancer, SR-71 Blackbird, P-40 Warhawk
+- **B-1B Lancer**: swing-wing bomber with four afterburning engines and 24 JDAMs. The wings spread for takeoff and landing and sweep back as you speed up.
+- **SR-71 Blackbird**: Mach 3 spy plane. Climb past 70,000 ft and it keeps accelerating; no weapons.
+- **P-40 Warhawk**: WWII shark-mouth fighter with six .50 cals and one 500 lb bomb; flies Dogfight and Strike.
