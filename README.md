@@ -1,6 +1,6 @@
 # Skyward — Flight Simulator
 
-A browser flight sim with airplanes from trainers to fighters (Skylark, Vortex, Kestrel, Meridian, PC-12, F-16, F/A-18, F-22, A-10, F-15E, B-2, B-1B, SR-71, AC-130J, P-40), 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), six maps (Green Valley, Red Rock Canyon, Alpine Peaks, Metro City, Ocean Fleet, Desert Base) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
+A browser flight sim with airplanes from trainers to fighters (Skylark, Vortex, Kestrel, Meridian, PC-12, F-14, F-16, F/A-18, F-22, A-10, F-15E, B-2, B-1B, SR-71, AC-130J, P-40), 4 helicopters (Bell 407, UH-60 Black Hawk, AH-64 Apache, CH-47 Chinook), six maps (Green Valley, Red Rock Canyon, Alpine Peaks, Metro City, Ocean Fleet, Desert Base) with runways and helipads, landing practice with scoring, ring courses, wind, and live multiplayer.
 
 **Play:** https://n9165937-bit.github.io/flight-sim/
 
@@ -105,3 +105,4 @@ Combat: Space guns · M missile · B bomb · F flares · 1 switch missile · 2 s
 - **B-1B Lancer**: swing-wing bomber with four afterburning engines and 24 JDAMs. The wings spread for takeoff and landing and sweep back as you speed up.
 - **SR-71 Blackbird**: Mach 3 spy plane. Handles like a big jet down low; climb past 60,000 ft and it keeps accelerating toward Mach 3. No weapons.
 - **P-40 Warhawk**: WWII shark-mouth fighter with six .50 cals and one 500 lb bomb; flies Dogfight and Strike.
+- **F-14 Tomcat**: twin-tail Navy fighter with swing wings that sweep back as you speed up; Sidewinders, AMRAAMs and GBU-12s, and it launches and traps on the carriers.

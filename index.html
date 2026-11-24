@@ -308,6 +308,8 @@ const SPECS={
     retract:true,vmaxJ:700,machV:170,mass:6000,S:30,maxT:23500,jet:true,cl0:.2,cla:4.8,flapCL:.6,stall:14,cd0:.02,k:.045,flapCD:.05,gmax:3,roll:1.05,pitch:.7,yaw:.35,resp:2.6,gear:1.65,vsLim:5,vk:160,cruise:165,cam:30,camUp:6,eye:[.75,6.0],span:16.4,bars:[70,35,90]},
   pc12:{name:'PC-12',type:'SINGLE TURBOPROP',desc:'Big, roomy turboprop with a T-tail. Smooth, stable, and short-field capable.',
     retract:true,mass:4500,S:25.8,maxT:16000,vmax:190,cl0:.3,cla:5.2,flapCL:.6,stall:15,cd0:.025,k:.042,flapCD:.05,gmax:4.4,roll:1.0,pitch:.85,yaw:.45,resp:3.2,gear:1.65,vsLim:6,vk:60,cruise:100,cam:24,camUp:4.5,eye:[.85,3.0],span:16.3,blades:4,bars:[50,35,40]},
+  f14:{name:'F-14 Tomcat',type:'NAVY FIGHTER · SWING WINGS',desc:'Twin-tail Navy fighter. Wings sweep back as you speed up — great off the carriers.',
+    fighter:true,cockpitVis:true,retract:true,ab:true,vmaxJ:1300,machV:300,gmax:7.5,ceil:15000,spoolRate:1.1,mass:25000,S:52.5,maxT:250000,jet:true,cl0:.08,cla:4.0,flapCL:.45,stall:22,cd0:.022,k:.1,flapCD:.04,roll:2.2,pitch:1.6,yaw:.45,resp:5.2,gear:2.0,vsLim:5,vk:250,cruise:230,cam:25,camUp:5,eye:[.95,4.9],span:19.5,bars:[90,80,70]},
   f16:{name:'F-16 Viper',type:'FIGHTER · AFTERBURNER',desc:'Light single-engine fighter. Super fast roll, 9 g pulls, can do the Cobra.',
     fighter:true,cockpitVis:true,retract:true,ab:true,vmaxJ:1300,machV:290,gmax:9,ceil:15000,spoolRate:1.3,mass:12000,S:27.9,maxT:110000,jet:true,cl0:.05,cla:3.5,flapCL:.3,stall:25,cd0:.022,k:.12,flapCD:.03,roll:3.0,pitch:2.0,yaw:.5,resp:6,gear:1.9,vsLim:4.5,vk:270,cruise:240,cam:22,camUp:4.5,eye:[.9,3.35],span:9.8,bars:[95,95,75]},
   f18:{name:'F/A-18 Hornet',type:'FIGHTER · AFTERBURNER',desc:'Twin-engine, twin-tail navy fighter. Great at high angles of attack and slow-speed handling.',
@@ -902,6 +904,7 @@ const CK={
  kestrel:{w:1.2,top:-.17,bot:-.62,z:-.8,sill:-.2,roof:.38,frame:'ga',ctl:'yoke',quad:'twin',col:'#30343a',lay:'twin'},
  meridian:{w:1.34,top:-.18,bot:-.64,z:-.82,sill:-.18,roof:.36,frame:'jet',ctl:'yoke',quad:'twin',col:'#3a3f46',lay:'glass3'},
  pc12:{w:1.3,top:-.18,bot:-.64,z:-.82,sill:-.2,roof:.38,frame:'jet',ctl:'yoke',quad:'ga',col:'#353a40',lay:'glass3'},
+ f14:{w:.92,top:-.14,bot:-.62,z:-.74,sill:-.16,roof:.3,frame:'bubble',ctl:'stick',quad:'twin',col:'#2b2f35',lay:'f18',hud:true,mil:true},
  f16:{w:.78,top:-.13,bot:-.62,z:-.7,sill:-.14,frame:'bubble',ctl:'side',quad:'side',col:'#2a2e33',lay:'f16',hud:true,mil:true},
  f18:{w:.82,top:-.13,bot:-.62,z:-.72,sill:-.14,frame:'bow',ctl:'stick',quad:'side',col:'#3b4148',lay:'f18',hud:true,mil:true},
  f22:{w:.84,top:-.14,bot:-.62,z:-.72,sill:-.14,frame:'bubble',ctl:'side',quad:'side',col:'#2b2f35',lay:'f22',hud:true,mil:true},
@@ -930,7 +933,7 @@ const LAY={
  h5:(W,H)=>{const w=(W-72)/5;return[['warn',W*.3,8,W*.4,30],['mfd:pfd',12,46,w,H-58],['mfd:eng',24+w,46,w,H-58],['mfd:map',36+2*w,46,w,H-58],['mfd:eng',48+3*w,46,w,H-58],['mfd:pfd',60+4*w,46,w,H-58]]},
  ah:(W,H)=>[['ufc',W*.3,8,W*.4,H*.22],['mfd:pfd',14,H*.27,W/2-24,H*.7],['mfd:map',W/2+10,H*.27,W/2-24,H*.7]]
 };
-const MIL={b1:1,sr71:1,a10:1,f15e:1,f16:1,f18:1,f22:1,b2:1,ac130:1,uh60:1,ah64:1,chinook:1};
+const MIL={f14:1,b1:1,sr71:1,a10:1,f15e:1,f16:1,f18:1,f22:1,b2:1,ac130:1,uh60:1,ah64:1,chinook:1};
 let CKP=null;
 function cockpitData(){axes();_qi.copy(P.q).invert();_v.copy(P.vel).sub(P.wind).applyQuaternion(_qi);
   const hdg=((Math.atan2(_f.x,-_f.z)/DEG)%360+360)%360,ias=P.ias*1.944,altf=P.pos.y*3.281;
@@ -1345,6 +1348,22 @@ const AIRCRAFT={
    B.canopy([[7.6,.05,.03,.03,2,.48],[8.2,.34,.26,.05,2.2,.5],[9.3,.42,.33,.05,2.4,.52],[11.2,.4,.3,.05,2.4,.56],[12.2,.18,.1,.05,2,.6]],[.42],.4,[.32,.64])},
   gear(B){B.gearLeg(7.8,0,-.48,.33,.2,true,false);B.gearLeg(18.8,2.6,-.12,.45,.3,false,true,1)},
   stores(){}},
+ F14:{L:19.1,S:19.55,H:4.88,canopy:'smoke',scheme:{a:0x868d93,b:0x7c838a,under:0xc0c5c9,camo:.1,radome:[1.25,0xcfcfc6]},
+  build(B){B.body([[0,.01,.01,.01,2],[1.2,.36,.36,.32,2],[2.5,.6,.58,.5,2.2],[4,.76,.72,.6,2.4],[5.5,.84,.8,.62,2.5],[7,.9,.74,.6,2.6],[8.6,1.15,.6,.5,3]]);
+   // the flat "pancake" between the engines
+   B.body([[8,.9,.6,.45,3,0],[9.5,2.0,.5,.35,3.4,0],[13,2.1,.46,.32,3.4,0],[16,1.8,.4,.3,3.2,0],[18,.9,.3,.25,3,.05]],'paint','pancake');
+   B.intake([[6.6,.55,.62,.62,3.6,-.28,1.7],[8,.6,.64,.64,3.2,-.28,1.7],[12,.58,.6,.6,2.6,-.3,1.7],[15.6,.55,.55,.55,2.2,-.3,1.7],[17.2,.5,.5,.5,2,-.3,1.7]],true,{lip:.88});
+   B.nozzle(17.0,18.6,.5,.46,1.7,-.3,true,{k:16});
+   B.canopy([[3.3,.05,.03,.03,2,.55],[3.9,.38,.3,.05,2.2,.58],[5.2,.48,.46,.05,2.4,.6],[7.2,.46,.42,.05,2.4,.62],[8.2,.2,.15,.05,2,.66]],[.45],.4,[.32,.66]);
+   B.surf([{s:6.4,c:9.2,x:1.4,y:.18},{s:10,c:4.6,x:3.3,y:.18}],.06,'glove',true,'paint',{roundTip:false});
+   B.surf([{s:10.2,c:4.3,x:3.3,y:.18},{s:12.5,c:1.7,x:9.78,y:.12}],.06,'wing',true,'paint',{tcTip:.05});
+   B.surf([{s:15.6,c:3.3,x:2.1,y:-.2},{s:17.9,c:1.2,x:5.0,y:-.3}],.05,'h_stab');
+   B.surf([{s:13.5,c:3.5,x:1.55,y:.55},{s:16.6,c:1.4,x:2.0,y:3.3}],.05,'v_tail',true,'paint',{roundTip:false});
+   B.surf([{s:15.2,c:1.6,x:1.5,y:-.55},{s:16,c:1,x:1.75,y:-1.0}],.04,'ventral_fin')},
+  gear(B){B.gearLeg(4.3,0,-.75,.3,.2,false,false);B.gearLeg(10.6,2.55,-.55,.42,.28,false,true,1)},
+  stores(B){for(const x of[2.7,-2.7]){B.pylon(8.6,1.3,x,-.05,-.25);B.missile('AIM9',8.0,x,-.35)}
+   for(const x of[.6,-.6])for(const s of[8.6,12.2])B.missile('AIM120',s,x,-.42);
+   for(const x of[1.7,-1.7]){B.pylon(10.4,1.4,x,-.85,-1.05);B.missile('GBU12',9.8,x,-1.25)}}},
  P40:{L:9.66,S:11.38,H:3.76,canopy:'smoke',scheme:{a:0x5a5f3c,b:0x50553a,under:0x9a9fa3,camo:.06,shark:[.55,2.35]},
   build(B){B.body([[0,.06,.06,.06,2,.08],[.3,.38,.38,.38,2,.08],[1,.52,.52,.6,2.2,0],[2.2,.56,.58,.68,2.3,-.04],[3.4,.53,.6,.6,2.3],[4.6,.48,.62,.55,2.2],[6,.38,.52,.45,2],[7.6,.25,.4,.3,2,.08],[9.2,.12,.26,.12,2,.18],[9.66,.05,.12,.05,2,.22]]);
    B.body([[.6,.28,.05,.25,2,-.5],[1.4,.4,.05,.52,2.2,-.58],[2.5,.36,.05,.38,2,-.54],[3.1,.18,.05,.14,2,-.46]],'paint','chin');
@@ -1392,7 +1411,7 @@ function paintColors(A,g,nm=''){const S=A.scheme,col=new Float32Array(g.pos.leng
     c.lerp(soot,sstep(A.L*.86,A.L*.99,s)*.3);col[i]=c.r;col[i+1]=c.g;col[i+2]=c.b}
   return col}
 return{AIRCRAFT,buildAircraft,paintColors}})();
-const HG_MAP={f16:'F16',f22:'F22',f18:'F18',a10:'A10',f15e:'F15E',b2:'B2',ac130:'C130',b1:'B1',sr71:'SR71',p40:'P40'};
+const HG_MAP={f14:'F14',f16:'F16',f22:'F22',f18:'F18',a10:'A10',f15e:'F15E',b2:'B2',ac130:'C130',b1:'B1',sr71:'SR71',p40:'P40'};
 let HG_PANEL=null;
 function hgPanelTex(){if(HG_PANEL)return HG_PANEL;const N=1024,px=N/4,cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d');let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
   g.fillStyle='#f4f4f4';g.fillRect(0,0,N,N);
@@ -1540,6 +1559,7 @@ const WPN={
   jdam:{n:'GBU-31 JDAM 2,000 lb (GPS)',sh:'JDAM',k:'bomb',guide:'gps',cost:6,blast:55,dmg:700}};
 // what each aircraft may carry: weight capacity (each weapon has a cost), max of each, and the default loadout
 const LOADCFG={
+  f14:{cap:14,max:{aim9:2,aim120:4,gbu12:2},def:{aim9:2,aim120:4,gbu12:2}},
   f16:{cap:16,max:{aim9:6,aim120:6,agm65:4,mk82:6,gbu12:4},def:{aim9:2,aim120:4,gbu12:4}},
   f18:{cap:16,max:{aim9:4,aim120:8,agm65:4,mk82:6,gbu12:4},def:{aim9:2,aim120:4,gbu12:4}},
   f22:{cap:11,max:{aim9:2,aim120:6,gbu12:2},def:{aim9:2,aim120:6}},
@@ -1585,7 +1605,9 @@ function wpnBuild(id){const G=new THREE.Group(),add=o=>(G.add(o),o),M=(c,m=.35,r
   const W=new THREE.Group();G.rotation.y=Math.PI;G.position.z=L/2;W.add(G);W.userData.L=L;W.userData.inner=G;return W}
 function wpnModel(id){if(!_wk[id])_wk[id]=wpnBuild(id);const m=_wk[id].clone();m.userData.L=_wk[id].userData.L;return m}
 /* speed brakes: which jets open split ailerons, which have a big panel on the back */
-const SBSPLIT={f16:1,f22:1,a10:1,b2:1},SBDORSAL={f15e:[3.0,1.25,2.6,.8],f18:[4.2,.85,1.5,.9]};
+const SBSPLIT={f16:1,f22:1,a10:1,b2:1},SBDORSAL={f15e:[3.0,1.25,2.6,.8],f18:[4.2,.85,1.5,.9],f14:[8.6,1.1,1.6,.9]};
+// swing wings: extra sweep (deg) and the speed range (m/s) over which they sweep back
+const SWING={b1:{deg:52,v0:115,v1:250},f14:{deg:48,v0:140,v1:265}};
 /* ---------------- liveries ---------------- */
 function myLiv(id){return +(lsGet('skyward_liv_'+id)||0)}
 function loadUI(){}
@@ -1601,6 +1623,7 @@ const LIV_MILH=[['Factory',null],['Desert Tan',{base:'#b59a6b',acc:['#8c7550','#
   ['Night Black',{base:'#23262a',acc:['#2e3237','#3a3f45']}],['Coast Guard Orange',{base:'#e2641e',acc:['#f4f4f1','#1d1d1f']}]];
 // two or more liveries made just for each aircraft (listed first, with a ★)
 const LIV_SPECIAL={
+  f14:[['Black Tail',{a:0x868d93,b:0x868d93,under:0xc0c5c9,camo:0,fin:0x1b1b1b,finTop:[3.9,0xf2f2ee]}],['Sunburst Tail',{a:0xa3a9ae,b:0xa3a9ae,under:0xe6e8ea,camo:0,fin:0xc8202a,finTop:[3.9,0xf2c230],stripe:[[.58,.6,0xc8202a]]}],['Gloss Gull Gray',{a:0xb5b8b4,b:0xb5b8b4,under:0xf2f2ee,camo:0,radome:[1.25,0xe8e4d8]}]],
   f16:[['Demo Team',{a:0xf2f2f0,b:0xf2f2f0,under:0x1f3f8f,camo:0,radome:[1.6,0xc8202a],fin:0xf2f2f0,finTop:[3.9,0x1f3f8f],stripe:[[.3,.335,0xc8202a],[.35,.38,0x1f3f8f]],tips:[.8,0xc8202a]}],
        ['Tiger Meet',{a:0xe58a1c,b:0x1b1b1b,under:0xf0b45a,camo:1.1,fin:0x1b1b1b,finTop:[4.0,0xe58a1c]}],['Splinter Aggressor',{a:0xc9b48a,b:0x7a8a5a,under:0xd8ccb0,camo:.7,radome:[1.3,0x3a3a3a]}]],
   f18:[['Blue Demo',{a:0x16306e,b:0x16306e,under:0x16306e,camo:0,radome:[1.0,0x16306e],stripe:[[.17,.21,0xf2c230]],tips:[.78,0xf2c230],fin:0x16306e,finTop:[3.6,0xf2c230]}],
@@ -1714,7 +1737,7 @@ function makePlane0(id,lo,lv){
     for(const p of H.parts){if(p.grp==='stores'&&lo)continue;
       if(p.grp==='stores'&&!lo&&LOADCFG[id]&&p.name!=='pylon'){if(HPN[p.name]){p.geo.computeBoundingBox();const c=new V3();p.geo.boundingBox.getCenter(c);fx.hardpts.push({pos:c,kind:HPN[p.name]})}continue}
       const mt=p.mat==='paint'?paintM:p.mat==='canopy'?hgMat(A.canopy):hgMat(p.mat);const sp=CS&&CS.split[p.name];
-      let par=root;if(id==='b1'&&/^wing/.test(p.name)){par=fx.swing&&fx.swing[p.name];if(!par){const a=p.geo.attributes.position.array;let mx=1e9,px=0,pz=0,py=0,n=0;for(let i=0;i<a.length;i+=3)mx=Math.min(mx,Math.abs(a[i]));
+      let par=root;if(SWING[id]&&/^wing/.test(p.name)){par=fx.swing&&fx.swing[p.name];if(!par){const a=p.geo.attributes.position.array;let mx=1e9,px=0,pz=0,py=0,n=0;for(let i=0;i<a.length;i+=3)mx=Math.min(mx,Math.abs(a[i]));
           for(let i=0;i<a.length;i+=3)if(Math.abs(a[i])<mx+.25){px+=a[i];py+=a[i+1];pz+=a[i+2];n++}par=new THREE.Group();par.position.set(px/n,py/n,pz/n);par.userData.side=Math.sign(px);root.add(par);(fx.swing=fx.swing||{})[p.name]=par}}
       const m=new THREE.Mesh(sp?sp.geo:p.geo,mt);if(par!==root)m.position.copy(par.position).negate();par.add(m);if(p.grp==='gear')gearParts.push(m);
       if(sp)for(const c of sp.cs){const pv=new THREE.Group();pv.position.copy(c.A);pv.rotation.order='YZX';pv.rotation.y=-Math.atan2(c.d.z,c.d.x);pv.rotation.z=Math.atan2(c.d.y,Math.hypot(c.d.x,c.d.z));pv.userData.base=0;
@@ -2634,7 +2657,7 @@ const newDmg=()=>({lost:{}});
 /* ---------------- dogfight (AI bots + PvP) ---------------- */
 const DF={ammo:{},selM:null,selB:null,lockPref:'msl',bombs:[],bmbN:0,bmbCD:0,strike:false,on:false,hp:100,k:0,d:0,bots:[],bul:[],msl:[],flr:[],sm:[],tgt:null,lock:0,locked:null,gunT:0,mslN:0,flrN:0,mslCD:0,resp:0,feed:[],hitFx:0,warn:0,lockBeep:0,fireHeld:false,netFire:0};
 const WING=[];
-const MILW0={b1:{gun:0,dmg:0,msl:0,bmb:24},sr71:{gun:0,dmg:0,msl:0,bmb:0},p40:{gun:14,dmg:4.2,msl:0,bmb:1},b2:{gun:0,dmg:0,msl:0,bmb:16},ac130:{gun:0,dmg:0,msl:0,bmb:0,gs:1},a10:{gun:60,dmg:5,gnd:4,msl:6,bmb:6},f15e:{gun:20,dmg:4.5,msl:6,bmb:8},f16:{gun:22,dmg:4.5,msl:6,bmb:4},f18:{gun:20,dmg:4.5,msl:6,bmb:4},f22:{gun:22,dmg:4.5,msl:6,bmb:2},ah64:{gun:10,dmg:8,msl:4},uh60:{gun:16,dmg:3.5,msl:0},chinook:{gun:14,dmg:3.5,msl:0}};
+const MILW0={f14:{gun:22,dmg:4.5,msl:6,bmb:2},b1:{gun:0,dmg:0,msl:0,bmb:24},sr71:{gun:0,dmg:0,msl:0,bmb:0},p40:{gun:14,dmg:4.2,msl:0,bmb:1},b2:{gun:0,dmg:0,msl:0,bmb:16},ac130:{gun:0,dmg:0,msl:0,bmb:0,gs:1},a10:{gun:60,dmg:5,gnd:4,msl:6,bmb:6},f15e:{gun:20,dmg:4.5,msl:6,bmb:8},f16:{gun:22,dmg:4.5,msl:6,bmb:4},f18:{gun:20,dmg:4.5,msl:6,bmb:4},f22:{gun:22,dmg:4.5,msl:6,bmb:2},ah64:{gun:10,dmg:8,msl:4},uh60:{gun:16,dmg:3.5,msl:0},chinook:{gun:14,dmg:3.5,msl:0}};
 const MILW=MILW0;
 const dfW=id=>{const b=Object.assign({gnd:1,bmb:0},MILW0[id]||{gun:12,dmg:4,msl:0});if(LOADCFG[id]){const t=loadTotals(loadGet(id));b.msl=t.m;b.bmb=t.b}return b};
 const BOTNAMES=['Viper','Ghost','Rogue','Talon','Havoc','Raven','Blaze','Saber','Jester','Iceman'];
@@ -3375,7 +3398,7 @@ function updateVisuals(dt){
    if(plane.sbSplit)for(const t of plane.sbSplit){t.tw.rotation.x=t.src.rotation.x-P.sb*.75;t.src.rotation.x+=P.sb*.75}
    if(plane.sbDorsal)plane.sbDorsal.p.rotation.x=P.sb*plane.sbDorsal.ang;
    // B-1 swing wings: spread for slow flight and flaps, swept back as it speeds up
-   if(plane.swing){const tgt=P.flapT>.05||P.onGround?0:clamp((P.vel.length()-115)/(250-115),0,1);P.sweep=(P.sweep||0)+(tgt-(P.sweep||0))*Math.min(1,dt*.35);for(const k in plane.swing){const w=plane.swing[k];w.rotation.y=w.userData.side*P.sweep*52*DEG}}}
+   if(plane.swing&&SWING[SP.id]){const C=SWING[SP.id],tgt=P.flapT>.05||P.onGround?0:clamp((P.vel.length()-C.v0)/(C.v1-C.v0),0,1);P.sweep=(P.sweep||0)+(tgt-(P.sweep||0))*Math.min(1,dt*.4);for(const k in plane.swing){const w=plane.swing[k];w.rotation.y=w.userData.side*P.sweep*C.deg*DEG}}}
   const tt=performance.now()/1000;if(CITYM)for(const b of CITYM.beacons)b.visible=(tt%1.5)<.75;if(OCM)OCM.spin.forEach((s,i)=>i%2?s.visible=(tt%1.4)<.7:s.rotation.y=tt*1.6);for(const b of plane.beacons)b.visible=(tt%1.3)<.18;for(const st of plane.strobes)st.visible=(tt%1.6)<.05||((tt%1.6)>.16&&(tt%1.6)<.21);
   updateTrails();
   const gh=Math.max(groundAt(P.pos.x,P.pos.z),0),agl=P.pos.y-gh;
