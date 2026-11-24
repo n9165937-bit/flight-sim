@@ -3126,7 +3126,10 @@ function gunLoopMake(){try{const out=AC.createGain();out.gain.value=0;const lp=A
   const sq=AC.createOscillator();sq.type='square';sq.frequency.value=30;const sqg=AC.createGain();sqg.gain.value=.35;sq.connect(sqg);sqg.connect(ng.gain);ns.connect(bp);bp.connect(ng);ng.connect(out);
   // the deep body of the burst
   const lpN=AC.createBiquadFilter();lpN.type='lowpass';lpN.frequency.value=130;const rg=AC.createGain();rg.gain.value=1;ns.connect(lpN);lpN.connect(rg);rg.connect(out);
-  saw.start();sq.start();ns.start(0,Math.random());return{out,lp,dl,pn,saw,sq,ns,on:false,last:0,t0:0,tOff:0}}catch(e){return null}}
+  // the "after-BRRRT": the burst rolls back off the hills a second or so later, deeper and softer, then fades like thunder
+  const ed=AC.createDelay(4);ed.delayTime.value=1.25;const ef=AC.createBiquadFilter();ef.type='lowpass';ef.frequency.value=650;const eg=AC.createGain();eg.gain.value=.55;const fb=AC.createGain();fb.gain.value=.38;
+  const ed2=AC.createDelay(4);ed2.delayTime.value=.7;dl.connect(ed);ed.connect(ef);ef.connect(eg);eg.connect(AC.master);ef.connect(ed2);ed2.connect(fb);fb.connect(ed);
+  saw.start();sq.start();ns.start(0,Math.random());return{out,lp,dl,pn,saw,sq,ns,ed,eg,on:false,last:0,t0:0,tOff:0}}catch(e){return null}}
 function gunLoopsUpdate(){if(!AC)return;const t=AC.currentTime,c=camera.position;
   for(const[k,L]of GUNL){const firing=L.on&&t-L.last<.09&&sndOn&&state==='play';if(L.on&&!firing){L.on=false;L.tOff=t}
     const d=L.pos?c.distanceTo(L.pos):0,rate=firing?28+37*Math.min(1,(t-L.t0)/.45):Math.max(18,65-(t-L.tOff)*90);
@@ -3134,7 +3137,9 @@ function gunLoopsUpdate(){if(!AC)return;const t=AC.currentTime,c=camera.position
     L.out.gain.setTargetAtTime(firing?1.6*120/(120+d)*Math.max(0,1-d/5000):0,t,firing?.03:.12);
     L.lp.frequency.setTargetAtTime(Math.max(280,14000*Math.exp(-d/1400)),t,.1);L.dl.delayTime.setTargetAtTime(Math.min(2.5,d/343),t,.25);
     if(L.pn&&d>1){_tmp2.subVectors(L.pos,c).multiplyScalar(1/d);L.pn.pan.setTargetAtTime(clamp(_tmp2.dot(_camR.set(1,0,0).applyQuaternion(camera.quaternion)),-1,1)*.85,t,.05)}
-    if(!L.on&&t-L.last>4){try{L.saw.stop();L.sq.stop();L.ns.stop()}catch(e){}L.out.disconnect();GUNL.delete(k)}}}
+    // echo comes back later from further away; bigger and longer over the mountains
+    L.ed.delayTime.setTargetAtTime(Math.min(3.5,1.1+d/700),t,.3);L.eg.gain.setTargetAtTime(sndOn&&state==='play'?.55:0,t,.2);
+    if(!L.on&&t-L.last>9){try{L.saw.stop();L.sq.stop();L.ns.stop()}catch(e){}L.out.disconnect();L.eg.disconnect();GUNL.delete(k)}}}
 function sfx(kind,pos,sc=1,owner){if(!AC||!sndOn)return;if(kind==='brrt'){gunLoopTouch(owner||'x',pos);return}try{
   if(kind==='gun'||kind==='brrt'||kind==='aaa'){const now=AC.currentTime,last=owner==='me'?_myGunT:owner&&typeof owner==='object'?(_gunT.get(owner)||0):0;if(now-last<(kind==='brrt'?.03:.055))return;if(owner==='me')_myGunT=now;else if(owner&&typeof owner==='object')_gunT.set(owner,now)}
   const B=sfxBus(pos,kind,{gun:.5,brrt:1.6,aaa:.45,launch:.7,boom:1.1*Math.min(2.2,.55+sc*.45),flare:.25}[kind]);if(!B)return;

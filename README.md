@@ -69,7 +69,7 @@ Combat: Space guns · X missile · J bomb · 1 switch missile · 2 switch bomb �
 ## Sound
 - Guns, missile launches and explosions are positional: volume drops with distance, far-off blasts sound muffled, they pan left/right, and the boom arrives late (sound travels at 343 m/s).
 - Missiles hiss as they fly past you. The nearest other aircraft roars louder as it passes, with Doppler pitch.
-- Every aircraft has its own engine sound: afterburner rumble, the A-10's turbine whine and extra-loud BRRRT, the Chinook's slow heavy thump.
+- Every aircraft has its own engine sound: afterburner rumble, the A-10's turbine whine and its GAU-8 BRRRT (with spin-up, and the echo that rolls back off the hills after each burst), the Chinook's slow heavy thump.
 
 ## Combat extras
 - **Damage diagram** (top left in combat): each wing, the tail and the engine turn yellow then red as they take hits, and flash once they're gone.
