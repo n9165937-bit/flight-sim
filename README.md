@@ -103,5 +103,5 @@ Combat: Space guns · M missile · B bomb · F flares · 1 switch missile · 2 s
 
 ## B-1B Lancer, SR-71 Blackbird, P-40 Warhawk
 - **B-1B Lancer**: swing-wing bomber with four afterburning engines and 24 JDAMs. The wings spread for takeoff and landing and sweep back as you speed up.
-- **SR-71 Blackbird**: Mach 3 spy plane. Climb past 70,000 ft and it keeps accelerating; no weapons.
+- **SR-71 Blackbird**: Mach 3 spy plane. Handles like a big jet down low; climb past 60,000 ft and it keeps accelerating toward Mach 3. No weapons.
 - **P-40 Warhawk**: WWII shark-mouth fighter with six .50 cals and one 500 lb bomb; flies Dogfight and Strike.
