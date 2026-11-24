@@ -87,15 +87,6 @@ body.gs #adi,body.gs #map,body.gs #ctl,body.gs #spd,body.gs #alt,body.gs #actbtn
 .bar em{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.12);position:relative;overflow:hidden}
 .bar em:after{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--v);background:linear-gradient(90deg,#7fd8ff,#7dffb0)}
 .opts{display:flex;gap:16px;flex-wrap:wrap}
-.ldbtn{background:rgba(255,210,122,.15);color:#ffd27a;border:1px solid rgba(255,210,122,.5);border-radius:8px;padding:5px 12px;font:700 13px 'Rajdhani',sans-serif;letter-spacing:1px;cursor:pointer}
-#loadsum{color:#a9cce4;font-size:13px}
-#loadp{margin-top:10px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,210,122,.35);background:rgba(25,30,20,.55)}
-#loadp .lr{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:10px;align-items:center;padding:5px 0;border-top:1px solid rgba(255,255,255,.08)}
-#loadp .lr:first-of-type{border-top:0}#loadp .lr b{font-size:15px}#loadp .lr small{display:block;color:#a9cce4;font-size:12px}
-#loadp .st{width:38px;height:38px;border-radius:10px;border:1px solid rgba(160,220,255,.35);background:rgba(20,45,70,.7);color:#fff;font:700 20px 'Rajdhani',sans-serif;cursor:pointer}
-#loadp .st:disabled{opacity:.3;cursor:default}#loadp .ct{min-width:28px;text-align:center;font:700 18px 'Rajdhani',sans-serif}
-#loadp .cap{display:flex;align-items:center;gap:10px;margin:2px 0 8px;font-size:13px;color:#cfe6f7}#loadp .cap em{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}#loadp .cap em i{display:block;height:100%;background:linear-gradient(90deg,#7dffb0,#ffd27a)}
-#loadp .lf{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:12px;color:#a9cce4}
 .opts label{font-size:14px;color:#cfe6f7;display:flex;align-items:center;gap:8px}
 select{background:rgba(20,45,70,.8);color:#fff;border:1px solid rgba(160,220,255,.35);border-radius:8px;padding:6px 8px;font:600 14px 'Rajdhani',sans-serif}
 .modes{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
@@ -236,8 +227,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
     <button class="mbtn" id="resume"><b>▶ Resume flight</b><span>Back to where you left off</span></button>
     <div class="sec">AIRCRAFT</div>
     <div class="planes" id="planes"></div>
-    <div class="opts"><label>Livery <select id="selLiv"></select></label><label id="loadrow">Loadout <button class="ldbtn" id="bload">EDIT</button><span id="loadsum"></span></label></div>
-    <div id="loadp" class="hidden"></div>
+    <div class="opts"><label>Livery <select id="selLiv"></select></label></div>
     <div class="sec">CONDITIONS</div>
     <div class="opts">
       <label>Airport <select id="selApt"></select></label>
@@ -1507,7 +1497,7 @@ const LOADCFG={
 function loadCost(L){let c=0;for(const k in L)c+=(WPN[k]?WPN[k].cost:0)*L[k];return c}
 const _ldC={};
 function loadGet(id){if(_ldC[id])return Object.assign({},_ldC[id]);const r=loadGet0(id);_ldC[id]=r;return Object.assign({},r)}
-function loadGet0(id){const C=LOADCFG[id];if(!C)return{};let L=null;try{L=JSON.parse(lsGet('skyward_load_'+id)||'null')}catch(e){}
+function loadGet0(id){const C=LOADCFG[id];if(!C)return{};return Object.assign({},C.def);let L=null;try{L=JSON.parse(lsGet('skyward_load_'+id)||'null')}catch(e){}
   if(!L||typeof L!=='object')L=Object.assign({},C.def);const out={};for(const k in C.max)out[k]=clamp(L[k]|0,0,C.max[k]);if(loadCost(out)>C.cap+1e-6)return Object.assign({},C.def);return out}
 function loadSet(id,L){lsSet('skyward_load_'+id,JSON.stringify(L));delete _ldC[id]}
 function loadTotals(L){let m=0,b=0;for(const k in L)if(WPN[k])(WPN[k].k==='bomb'?b+=L[k]:m+=L[k]);return{m,b}}
@@ -1543,16 +1533,7 @@ function wpnModel(id){if(!_wk[id])_wk[id]=wpnBuild(id);const m=_wk[id].clone();m
 const SBSPLIT={f16:1,f22:1,a10:1,b2:1},SBDORSAL={f15e:[3.0,1.25,2.6,.8],f18:[4.2,.85,1.5,.9]};
 /* ---------------- liveries ---------------- */
 function myLiv(id){return +(lsGet('skyward_liv_'+id)||0)}
-function loadUI(){const row=$('loadrow'),pn=$('loadp');if(!row||!SP)return;const C=LOADCFG[SP.id];row.style.display=C?'':'none';if(!C){pn.classList.add('hidden');return}
-  const L=loadGet(SP.id),t=loadTotals(L);$('loadsum').textContent=Object.keys(WPN).filter(k=>L[k]).map(k=>L[k]+'× '+WPN[k].sh).join(' · ')||'empty';
-  $('bload').onclick=()=>{pn.classList.toggle('hidden');drawLoad()};if(!pn.classList.contains('hidden'))drawLoad()}
-function drawLoad(){const pn=$('loadp'),C=LOADCFG[SP.id];if(!C)return;const L=loadGet(SP.id),used=loadCost(L);
-  pn.innerHTML=`<div class="cap">WEIGHT <em><i style="width:${Math.min(100,used/C.cap*100)}%"></i></em> ${+used.toFixed(1)} / ${C.cap}</div>`+Object.keys(C.max).map(k=>{const W=WPN[k],n=L[k]|0,canAdd=n<C.max[k]&&used+W.cost<=C.cap+1e-6;
-    return`<div class="lr"><span><b>${W.n}</b><small>${W.k==='aa'?'Air-to-air missile · range '+(W.range/1000).toFixed(1)+' km':W.k==='ag'?'Air-to-ground missile · locks ground targets':W.guide==='laser'?'Bomb · laser-guided to your lock':W.guide==='gps'?'Bomb · GPS to your lock or the pipper':'Bomb · unguided, aim with the pipper'} · weight ${W.cost}</small></span>
-      <button class="st" data-k="${k}" data-d="-1" ${n<=0?'disabled':''} aria-label="Fewer">−</button><span class="ct">${n}</span><button class="st" data-k="${k}" data-d="1" ${canAdd?'':'disabled'} aria-label="More">+</button></div>`}).join('')+
-    `<div class="lf"><span>Applies when you start, respawn or rearm. Keys: 1 switch missile · 2 switch bomb</span><button class="ldbtn" id="ldreset">DEFAULT</button></div>`;
-  pn.querySelectorAll('.st').forEach(b=>b.onclick=()=>{const k=b.dataset.k,L2=loadGet(SP.id);L2[k]=clamp((L2[k]|0)+(+b.dataset.d),0,C.max[k]);if(loadCost(L2)<=C.cap+1e-6){loadSet(SP.id,L2);armVisual(L2);loadUI()}});
-  $('ldreset').onclick=()=>{loadSet(SP.id,Object.assign({},C.def));armVisual(loadGet(SP.id));loadUI()}}
+function loadUI(){}
 function livUI(){const el=typeof $==='function'&&$('selLiv');if(!el||!SP)return;el.innerHTML=livList(SP.id).map((l,i)=>`<option value="${i}">${l[0]}</option>`).join('');el.value=myLiv(SP.id);
   el.onchange=()=>{lsSet('skyward_liv_'+SP.id,el.value);selectPlane(SP.id)}}
 // jets with real-scale models: camouflage colours; everything else: base colour + two accent colours swapped into the painted texture

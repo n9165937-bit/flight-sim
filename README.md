@@ -96,7 +96,7 @@ Combat: Space guns · X missile · J bomb · 1 switch missile · 2 switch bomb �
 
 ## Weapons & loadouts
 - New detailed models: AIM-9X Sidewinder, AIM-120 AMRAAM, AGM-65 Maverick, AGM-114 Hellfire, Mk-82, GBU-12 Paveway II and GBU-31 JDAM. Missiles fly with a motor flame; GBU-12 tail wings unfold after release.
-- **Loadout** (menu, next to Livery → EDIT): choose how many of each weapon your aircraft carries, within its weight limit. Saved per aircraft; applies when you start, respawn or rearm. The weapons hang on the pylons and disappear as you fire them.
+- Each aircraft carries a fixed loadout of these weapons (below); they hang on the pylons and disappear as you fire them.
 - Each weapon behaves differently: Sidewinder (short range, agile, fooled by flares), AMRAAM (7.5 km lock, harder to decoy), Maverick and Hellfire (lock ground targets), Mk-82 (unguided — use the pipper), GBU-12 (laser-guided to your lock), JDAM (GPS: hits your lock or the pipper point, huge blast).
 - In flight: **1** switches missile type, **2** switches bomb type (MSL ▸ / BMB ▸ on touch). The HUD shows what's selected.
-- Who carries what: F-16 / F/A-18 (Sidewinder, AMRAAM, Maverick, Mk-82, GBU-12), F-22 (Sidewinder, AMRAAM, GBU-12), A-10 (Sidewinder, Maverick, Mk-82, GBU-12), F-15E (all but Hellfire), B-2 (Mk-82, GBU-12, JDAM), Apache (Hellfire, Sidewinder).
+- Loadouts: F-16 / F/A-18 (Sidewinder, AMRAAM, Maverick, Mk-82, GBU-12), F-22 (Sidewinder, AMRAAM, GBU-12), A-10 (Sidewinder, Maverick, Mk-82, GBU-12), F-15E (all but Hellfire), B-2 (Mk-82, GBU-12, JDAM), Apache (Hellfire, Sidewinder).
