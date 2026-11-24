@@ -3098,7 +3098,7 @@ function initAudio(){if(AC)return;try{AC=new(window.AudioContext||window.webkitA
   othO=AC.createOscillator();othO.type='sawtooth';othO.frequency.value=90;const oog=AC.createGain();oog.gain.value=.25;othO.connect(oog);oog.connect(othF);othO.start();
  }catch(e){AC=null}}
 /* ---- positional sound effects: volume, muffling, stereo side and delay all come from the distance to the camera ---- */
-const SFXR={gun:1600,brrt:2600,aaa:1800,launch:3000,boom:9000,flare:700};
+const SFXR={gun:1600,brrt:4000,aaa:1800,launch:3000,boom:9000,flare:700};
 let _sfxN=0;
 function sfxBus(pos,kind,base){if(!AC||!sndOn||state!=='play')return null;const L=camera.position;let d=0,pan=0;
   if(pos){d=L.distanceTo(pos);if(d>SFXR[kind])return null;_tmp2.subVectors(pos,L);if(d>1){_tmp2.multiplyScalar(1/d);pan=clamp(_tmp2.dot(_camR.set(1,0,0).applyQuaternion(camera.quaternion)),-1,1)*.85}}
@@ -3115,9 +3115,9 @@ function sfxTone(B,dur,f0,f1,type,v){const o=AC.createOscillator();o.type=type||
 const _gunT=new WeakMap();let _myGunT=0;
 function sfx(kind,pos,sc=1,owner){if(!AC||!sndOn)return;try{
   if(kind==='gun'||kind==='brrt'||kind==='aaa'){const now=AC.currentTime,last=owner==='me'?_myGunT:owner&&typeof owner==='object'?(_gunT.get(owner)||0):0;if(now-last<(kind==='brrt'?.03:.055))return;if(owner==='me')_myGunT=now;else if(owner&&typeof owner==='object')_gunT.set(owner,now)}
-  const B=sfxBus(pos,kind,{gun:.5,brrt:.6,aaa:.45,launch:.7,boom:1.1*Math.min(2.2,.55+sc*.45),flare:.25}[kind]);if(!B)return;
+  const B=sfxBus(pos,kind,{gun:.5,brrt:1.6,aaa:.45,launch:.7,boom:1.1*Math.min(2.2,.55+sc*.45),flare:.25}[kind]);if(!B)return;
   if(kind==='gun'){sfxNoise(B,.07,3200,600,'bandpass',.9);sfxTone(B,.06,180,70,'square',.5);B.done(.1)}
-  else if(kind==='brrt'){sfxNoise(B,.05,1800,500,'bandpass',.7);sfxTone(B,.05,110,60,'sawtooth',.7);B.done(.08)}
+  else if(kind==='brrt'){sfxNoise(B,.06,2200,450,'bandpass',.6);sfxNoise(B,.08,700,120,'lowpass',.9);sfxTone(B,.06,95,45,'sawtooth',1);sfxTone(B,.05,190,90,'square',.35);B.done(.1)}
   else if(kind==='aaa'){sfxNoise(B,.12,1400,300,'bandpass',.8);sfxTone(B,.1,95,40,'square',.6);B.done(.15)}
   else if(kind==='launch'){sfxNoise(B,1.4,300,5200,'bandpass',.6);sfxNoise(B,.9,900,120,'lowpass',.7);sfxTone(B,1.1,70,160,'sawtooth',.35);B.done(1.5)}
   else if(kind==='flare'){sfxNoise(B,.18,6000,1500,'highpass',.7);sfxTone(B,.08,900,300,'square',.25);B.done(.25)}
