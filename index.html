@@ -199,10 +199,11 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
   <div id="marker" class="hidden"><div class="d"></div><div class="n" id="markn"></div></div>
   <div id="help" class="panel hidden">
     <kbd>W</kbd>/<kbd>S</kbd> pitch · <kbd>A</kbd>/<kbd>D</kbd> roll · <kbd>Q</kbd>/<kbd>E</kbd> rudder<br>
-    <kbd>Shift</kbd>/<kbd>Ctrl</kbd> throttle · <kbd>F</kbd>/<kbd>V</kbd> flaps · <kbd>G</kbd> gear · <kbd>B</kbd> brakes / airbrake · <kbd>K</kbd> Cobra<br>
-    <kbd>C</kbd> camera · drag mouse to look · <kbd>M</kbd> map · <kbd>R</kbd> reset · <kbd>1</kbd>/<kbd>2</kbd> switch missile/bomb · <kbd>O</kbd><kbd>O</kbd> eject · <kbd>T</kbd> AC-130 orbit · <kbd>Esc</kbd> menu
+    <kbd>Shift</kbd>/<kbd>Ctrl</kbd> throttle · <kbd>V</kbd>/<kbd>U</kbd> flaps down/up · <kbd>G</kbd> gear · <kbd>X</kbd> brakes / airbrake · <kbd>K</kbd> Cobra<br>
+    <kbd>Space</kbd> guns · <kbd>M</kbd> missile · <kbd>B</kbd> bomb · <kbd>F</kbd> flares<br>
+    <kbd>C</kbd> camera · drag mouse to look · <kbd>Tab</kbd> map · <kbd>R</kbd> reset · <kbd>1</kbd>/<kbd>2</kbd> switch missile/bomb · <kbd>O</kbd><kbd>O</kbd> eject · <kbd>T</kbd> AC-130 orbit · <kbd>Esc</kbd> menu
   </div>
-  <div id="actbtns"><div class="frow"><button class="ibtn" id="bfup" title="Flaps up (V)">▲</button><div id="bflap"><span id="bflt">FLAPS UP</span><i><b id="bflb"></b></i></div><button class="ibtn" id="bfdn" title="Flaps down (F)">▼</button></div><button class="ibtn" id="bgear">GEAR DOWN</button><button class="ibtn" id="bcobra">COBRA (K)</button><button class="ibtn hidden" id="bnvg">NIGHT VISION (N)</button><button class="ibtn hidden" id="bgs">GUNSHIP ORBIT (T)</button></div>
+  <div id="actbtns"><div class="frow"><button class="ibtn" id="bfup" title="Flaps up (U)">▲</button><div id="bflap"><span id="bflt">FLAPS UP</span><i><b id="bflb"></b></i></div><button class="ibtn" id="bfdn" title="Flaps down (V)">▼</button></div><button class="ibtn" id="bgear">GEAR DOWN</button><button class="ibtn" id="bcobra">COBRA (K)</button><button class="ibtn hidden" id="bnvg">NIGHT VISION (N)</button><button class="ibtn hidden" id="bgs">GUNSHIP ORBIT (T)</button></div>
   <div id="topbtns"><button class="ibtn" id="bhelp">? KEYS</button><button class="ibtn" id="bsnd">SOUND ON</button><button class="ibtn" id="bfs">FULLSCREEN</button><button class="ibtn" id="bpause">MENU</button><button class="ibtn touchonly" id="trst">RESET</button></div>
   <div id="result" class="panel hidden">
     <h2 id="rtitle">LANDING REPORT</h2>
@@ -257,13 +258,14 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
         <div>Roll left / right<span><kbd>A</kbd> <kbd>D</kbd></span></div>
         <div>Rudder / nosewheel<span><kbd>Q</kbd> <kbd>E</kbd></span></div>
         <div>Throttle up / down<span><kbd>Shift</kbd> <kbd>Ctrl</kbd> · wheel</span></div>
-        <div>Flaps down / up<span><kbd>F</kbd> <kbd>V</kbd></span></div>
+        <div>Flaps down / up<span><kbd>V</kbd> <kbd>U</kbd></span></div>
         <div>Landing gear up / down<span><kbd>G</kbd></span></div>
         <div>Cobra maneuver (fighters)<span><kbd>K</kbd></span></div>
-        <div>Wheel brakes / airbrake in the air (hold)<span><kbd>B</kbd></span></div>
+        <div>Wheel brakes / airbrake in the air (hold)<span><kbd>X</kbd></span></div>
         <div>Chase / cockpit cam<span><kbd>C</kbd></span></div>
         <div>Night vision (military, cockpit, night)<span><kbd>N</kbd></span></div>
-        <div>Combat: guns / missile / flares / bomb<span><kbd>Space</kbd> <kbd>X</kbd> <kbd>L</kbd> <kbd>J</kbd></span></div>
+        <div>Combat: guns / missile / bomb / flares<span><kbd>Space</kbd> <kbd>M</kbd> <kbd>B</kbd> <kbd>F</kbd></span></div>
+        <div>Map<span><kbd>Tab</kbd></span></div>
         <div>Reset · New approach · Menu<span><kbd>R</kbd> <kbd>N</kbd> <kbd>Esc</kbd></span></div>
       </div>
       <p style="margin-top:8px;color:#a9cce4">Landing: hold the target speed shown under your airspeed, keep the PAPI lights at two white / two red, and the approach diamonds centered. Raise the nose gently just before touchdown and aim for under 300 ft/min. In a crosswind, point the nose into the wind to stay on the centerline. Gamepads work too.</p>
@@ -318,7 +320,7 @@ const SPECS={
     fighter:true,cockpitVis:true,retract:true,ab:true,vmaxJ:1350,machV:300,gmax:9,ceil:15000,spoolRate:1.2,mass:26000,S:56.5,maxT:235000,jet:true,cl0:.05,cla:3.5,flapCL:.32,stall:32,cd0:.025,k:.1,flapCD:.035,roll:2.3,pitch:1.8,yaw:.5,resp:5.3,gear:2.0,vsLim:5,vk:265,cruise:240,cam:30,camUp:6,eye:[1.05,5.65],span:13.05,bars:[95,90,72]},
   b2:{name:'B-2 Spirit',type:'STEALTH BOMBER',desc:'A 52 m flying wing. Slow to turn, no guns, 16 bombs. Sneak in, drop, get out.',
     bomber:true,cockpitVis:true,retract:true,vmaxJ:950,machV:250,gmax:2.5,ceil:15000,spoolRate:.6,mass:80000,S:478,maxT:340000,jet:true,cl0:.1,cla:3.2,flapCL:.15,stall:20,cd0:.012,k:.035,flapCD:.02,roll:.6,pitch:.5,yaw:.22,resp:2,gear:2.6,vsLim:4,vk:220,cruise:230,cam:62,camUp:13,eye:[1.6,5.5],span:52.4,bars:[75,15,70]},
-  ac130:{name:'AC-130J Ghostrider',type:'GUNSHIP · 4 TURBOPROPS',desc:'Flying artillery. Press T to start a gunship orbit, then aim the side guns: SPACE 30 mm, X 105 mm.',
+  ac130:{name:'AC-130J Ghostrider',type:'GUNSHIP · 4 TURBOPROPS',desc:'Flying artillery. Press T to start a gunship orbit, then aim the side guns: SPACE 30 mm, M 105 mm.',
     gunship:true,sbCD:.015,cockpitVis:true,retract:true,mass:55000,S:162,maxT:150000,vmax:190,cl0:.3,cla:5.2,flapCL:.6,stall:15,cd0:.028,k:.045,flapCD:.05,gmax:3,roll:.6,pitch:.55,yaw:.3,resp:2.2,gear:2.3,vsLim:5,vk:60,cruise:140,cam:58,camUp:12,eye:[1.4,11.5],span:40.4,blades:4,bars:[45,20,65]},
   bell407:{name:'Bell 407',type:'LIGHT HELICOPTER',desc:'Nimble single-engine heli. Hover, land on peaks, fly the canyons low.',
     heli:true,skids:true,mass:2300,hov:.55,cx:1.6,pitch:1.25,roll:1.5,yaw:1.5,resp:4,gear:1.43,vsLim:3.5,cruise:55,cam:17,camUp:4,eye:[.55,1.9],span:10.7,bars:[35,80,55]},
@@ -2233,7 +2235,7 @@ function gsToggle(){if(state!=='play'||P.crashed||!SP.gunship)return;if(P.onGrou
   let mg=0;for(let a=0;a<6.3;a+=.2)mg=Math.max(mg,groundAt(GS.c.x+Math.cos(a)*GS.r,GS.c.z+Math.sin(a)*GS.r),groundAt(GS.c.x,GS.c.z));GS.alt=Math.max(P.pos.y,mg+900);
   GS.on=true;GS.ay=0;GS.ap=0;GS.fov0=camera.fov;camera.fov=20;camera.updateProjectionMatrix();renderer.domElement.style.filter='grayscale(1) contrast(1.3) brightness(.78)';$('gshud').classList.remove('hidden');document.body.classList.add('gs');
   for(const n of['tfire','tmsl'])$(n)&&$(n).classList.remove('hidden');
-  showMsg('GUNSHIP ORBIT','Aim with the stick or mouse · SPACE 30 mm · X 105 mm · T to exit','#ffd27a',4000)}
+  showMsg('GUNSHIP ORBIT','Aim with the stick or mouse · SPACE 30 mm · M 105 mm · T to exit','#ffd27a',4000)}
 function gsOff(){if(!GS.on)return;GS.on=false;camera.fov=GS.fov0||65;camera.updateProjectionMatrix();renderer.domElement.style.filter='';$('gshud').classList.add('hidden');document.body.classList.remove('gs');
   if(!DF.on)for(const n of['tfire','tmsl'])$(n)&&$(n).classList.add('hidden');for(const s of GS.shells)scene.remove(s.m);GS.shells.length=0}
 function gsAim(){const L=P.pos,base=new V3(GS.c.x,groundAt(GS.c.x,GS.c.z),GS.c.z).sub(L).normalize();const yawQ=new Q().setFromAxisAngle(new V3(0,1,0),GS.ay+lookYaw*.6);base.applyQuaternion(yawQ);
@@ -2624,7 +2626,7 @@ function dfStart(keep,strike){gsOff();dfFresh();FUEL.on=true;FUEL.f=1;FUEL.out=f
     if(keep&&ST.area){const d=new V3(Math.random()-.5,0,Math.random()-.5).normalize().multiplyScalar(3200);P.pos.set(clamp(ST.area.x+d.x,-HALF+800,HALF-800),0,clamp(ST.area.z+d.z,-HALF+800,HALF-800));P.pos.y=dfFloor(P.pos.x,P.pos.z)+(SP.heli?160:550);P.q.setFromEuler(new THREE.Euler(0,faceTo(P.pos.x,P.pos.z,ST.area.x,ST.area.z),0,'YXZ'));axes();P.vel.copy(_f).multiplyScalar(SP.heli?40:Math.min(SP.cruise,200))}
     if(!keep)stStart();else showMsg('BACK IN THE FIGHT',ST.kind+' — '+ST.units.filter(u=>u.alive).length+' targets left','#ff8a6a',2500);return}
   const nb=+$('selBots').value.replace(/\D/g,'')||0;if(!keep){for(let i=0;i<nb;i++)dfSpawnBot(i);let bd=1e9,b=null;for(const t of DF.bots){const dd=P.pos.distanceTo(t.pos);if(dd<bd){bd=dd;b=t}}if(b){P.q.setFromEuler(new THREE.Euler(0,faceTo(P.pos.x,P.pos.z,b.pos.x,b.pos.z),0,'YXZ'));axes();P.vel.copy(_f).multiplyScalar(P.vel.length())}}
-  showMsg('DOGFIGHT',nb?`${nb} ${$('selBots').value.includes('ace')?'ace':'rookie'} pilot${nb>1?'s':''} inbound · SPACE guns${w.msl?' · X missile · L flares':''}`:'Waiting for other pilots · SPACE guns','#ff6a5a',4000)}
+  showMsg('DOGFIGHT',nb?`${nb} ${$('selBots').value.includes('ace')?'ace':'rookie'} pilot${nb>1?'s':''} inbound · SPACE guns${w.msl?' · M missile · F flares':''}`:'Waiting for other pilots · SPACE guns','#ff6a5a',4000)}
 // yaw that points the nose (-Z) from (x,z) at (tx,tz)
 function faceTo(x,z,tx,tz){return Math.atan2(x-tx,z-tz)}
 function dfNeedsRearm(){const w=dfW(SP.id);return DF.hp<100||DF.mslN<w.msl||DF.bmbN<w.bmb||DF.flrN<(w.msl||w.bmb||w.gs?8:0)||(P.dmg&&Object.keys(P.dmg.lost).length>0)||(P.dmg&&(P.dmg.wingL||P.dmg.wingR||P.dmg.tail||P.dmg.engine))||(typeof FUEL!=='undefined'&&FUEL.f<.98)}
@@ -2745,7 +2747,7 @@ function updateBot(b,dt){const TG=botTarget(b);b.think-=dt;
     // guns
     b.gunT-=dt;if(dist<(b.ace?950:650)&&dfAngle(b.f,toMe)<(b.ace?5:4)*DEG&&b.gunT<=0){b.gunT=1/(b.ace?16:9);const w=dfW(b.type);
       dfShoot(b.pos.clone().addScaledVector(b.f,b.r*.6),toMe.clone().lerp(b.f,.5).normalize(),b.vel,b,w.dmg*(b.ace?.9:.55),b.ace?1:2.4,!b.friend);}
-    b.mslCD-=dt;if(!TG.gnd&&b.mslN>0&&b.mslCD<=0&&dist>700&&dist<3000&&dfAngle(b.f,toMe)<14*DEG){b.mslN--;b.mslCD=14;dfFireMissile(b.pos.clone(),b.vel,b.f,TG.obj,b,!b.friend);if(isMe)showMsg('MISSILE LAUNCH',b.name+' fired at you · turn hard / flares (L)','#ff4040',2500);else if(b.friend)dfFeed(b.name+' FOX 2 → '+TG.obj.name)}}
+    b.mslCD-=dt;if(!TG.gnd&&b.mslN>0&&b.mslCD<=0&&dist>700&&dist<3000&&dfAngle(b.f,toMe)<14*DEG){b.mslN--;b.mslCD=14;dfFireMissile(b.pos.clone(),b.vel,b.f,TG.obj,b,!b.friend);if(isMe)showMsg('MISSILE LAUNCH',b.name+' fired at you · turn hard / flares (F)','#ff4040',2500);else if(b.friend)dfFeed(b.name+' FOX 2 → '+TG.obj.name)}}
   else if(!b.vfm)des.set(b.f.x,0,b.f.z).normalize();
   if(b.spin){des.copy(b.f).setY(Math.min(b.f.y,-.25)).normalize()}
   // stay off the ground / out of the city towers, keep apart
@@ -2918,13 +2920,13 @@ function updateStrike(dt){if(!ST.on)return;const now=performance.now()/1000;
       u.fireT-=dt;if(d<2300){if(u.fireT<=0){u.burst=1.4;u.fireT=3+Math.random()*2}if(u.burst>0){u.burst-=dt;u.gT=(u.gT||0)-dt;if(u.gT<=0){u.gT=1/9;dfShoot(u.pos.clone().setY(u.pos.y+2.5),aim,_tmp.set(0,0,0),{name:'AAA'},2.4,1.7,true);if(Math.random()<.3)beep(220,.03,'square',.02*Math.min(1,800/d))}}}}
     if(u.type==='sam'){u.fireT-=dt;if(u.tur)u.tur.rotation.y=Math.atan2(-to.x,-to.z)-u.G.rotation.y;
       if(radarUp&&u.fireT<=0&&d>900&&d<7000&&samEnv()==='in'&&DF.msl.filter(m=>m.tgt==='me').length<2){u.fireT=9+Math.random()*5;
-        dfFireMissile(u.pos.clone().setY(u.pos.y+3),new V3(0,40,0),to.clone().normalize().add(_tmp.set(0,.8,0)).normalize(),'me',{name:'SAM'},true);DF.msl[DF.msl.length-1].sam=true;showMsg('SAM LAUNCH','Break hard, flares (L) — or go below 500 / above 8,000 ft AGL','#ff4040',2500)}}}
+        dfFireMissile(u.pos.clone().setY(u.pos.y+3),new V3(0,40,0),to.clone().normalize().add(_tmp.set(0,.8,0)).normalize(),'me',{name:'SAM'},true);DF.msl[DF.msl.length-1].sam=true;showMsg('SAM LAUNCH','Break hard, flares (F) — or go below 500 / above 8,000 ft AGL','#ff4040',2500)}}}
   // HUD line
   const left=ST.units.filter(u=>u.alive).length,dir=ST.area.clone().sub(P.pos),dist=Math.hypot(dir.x,dir.z);axes();
   const rel=Math.atan2(dir.x,-dir.z)-Math.atan2(_f.x,-_f.z);
   const samUp=radarUp&&ST.units.some(u=>u.alive&&u.type==='sam'&&u.pos.distanceTo(P.pos)<9000),env=samEnv(),rad=!samUp?'':env==='in'?' · <span style="color:#ff5a4a">SAM RADAR: TRACKING</span>':` · <span style="color:#7dffb0">SAM RADAR: ${env==='low'?'TOO LOW':'TOO HIGH'}</span>`;
   ST.hud=`STRIKE ${ST.n} · ${ST.kind.toUpperCase()} · <b>${left}</b> TARGET${left===1?'':'S'} LEFT · <span style="display:inline-block;transform:rotate(${rel}rad)">▲</span> ${dist<1000?Math.round(dist)+' m':(dist/1000).toFixed(1)+' km'} · ${ST.score} pts${rad}`}
-// ---- bombs: J to drop. Laser-guided if you hold a lock on a ground target (F-15E / A-10 / F-16 / F/A-18) ----
+// ---- bombs: B to drop. Laser-guided if you hold a lock on a ground target (F-15E / A-10 / F-16 / F/A-18) ----
 function dfBomb(){if(!DF.on||P.crashed)return;if(DF.bmbN<=0){showMsg('NO BOMBS',dfW(SP.id).bmb?'Out of bombs':'This aircraft has no bombs','#cfe6f7',1200);return}if(DF.bmbCD>0)return;
   if(!DF.selB||!(DF.ammo[DF.selB]>0))DF.selB=dfNextOf('b',null,true);if(!DF.selB)return;const id=DF.selB,WW=WPN[id];
   DF.ammo[id]--;dfAmmoSync();DF.bmbCD=.35;axes();const m=wpnModel(id);const wg=m.getObjectByName('wings');if(wg)wg.scale.set(.35,.35,1);const p=P.pos.clone().addScaledVector(_u,-1.6);m.position.copy(p);scene.add(m);
@@ -3007,21 +3009,21 @@ addEventListener('keydown',e=>{
   if(e.code==='Escape'||e.code==='KeyP'){if(state==='play')pause();else if(state==='paused')resume();return}
   if(state!=='play')return;
   if(e.code==='KeyC')camMode=1-camMode;
-  if(e.code==='KeyF')flapsDown();
-  if(e.code==='KeyV')flapsUp();
+  if(e.code==='KeyF')dfFlares();
+  if(e.code==='KeyV')flapsDown();
+  if(e.code==='KeyU')flapsUp();
   if(e.code==='KeyG')toggleGear();
   if(e.code==='KeyK')doCobra();
   if(e.code==='KeyN'&&mode!=='landing')toggleNVG();
-  if(e.code==='KeyX'){if(GS.on)gsFire(105);else dfMissileKey()}
+  if(e.code==='KeyM'){if(GS.on)gsFire(105);else dfMissileKey()}
   if(e.code==='KeyT')gsToggle();
-  if(e.code==='KeyJ')dfBomb();
+  if(e.code==='KeyB')dfBomb();
   if(e.code==='Digit1')dfSelect('m');
   if(e.code==='Digit2')dfSelect('b');
-  if(e.code==='KeyL')dfFlares();
   if(e.code==='KeyO')ejectKey();
   if(e.code==='KeyR')retry();
   if(e.code==='KeyN')newApproach();
-  if(e.code==='KeyM')$('map').classList.toggle('hidden');
+  if(e.code==='Tab'){e.preventDefault();$('map').classList.toggle('hidden')}
   if(e.code==='KeyH')$('help').classList.toggle('hidden');
 });
 addEventListener('keyup',e=>{keys[e.code]=false});
@@ -3072,7 +3074,7 @@ function pollInput(dt){
     if(bv(3)&&!gpCamLatch)camMode=1-camMode;gpCamLatch=!!bv(3);
   }
   if(touch.on){IN.pitch=touch.p;IN.roll=touch.r}
-  P.brake=!!(keys.KeyB||(keys.Space&&mode!=='dogfight'&&mode!=='strike')||touch.brake||gpBrake);
+  P.brake=!!(keys.KeyX||(keys.Space&&mode!=='dogfight'&&mode!=='strike')||touch.brake||gpBrake);
 }
 
 /* ---------------- audio ---------------- */

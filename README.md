@@ -9,8 +9,8 @@ Open the game, type a pilot name in the menu, and fly. Everyone on the same map 
 Want your own server with a kills/deaths leaderboard? See [server/README.md](server/README.md) (free Cloudflare Worker, about 5 minutes).
 
 ## Controls
-W/S pitch · A/D roll · Q/E rudder · Shift/Ctrl throttle (collective in helicopters) · F/V flaps · G gear · B brakes (airbrake in the air) · K Cobra (fighters) · C camera · R reset · Esc menu
-Combat: Space guns · X missile · J bomb · 1 switch missile · 2 switch bomb · L flares · N night vision · O O eject · T AC-130 gunship orbit
+W/S pitch · A/D roll · Q/E rudder · Shift/Ctrl throttle (collective in helicopters) · V/U flaps down/up · G gear · X brakes (airbrake in the air) · K Cobra (fighters) · C camera · Tab map · R reset · Esc menu
+Combat: Space guns · M missile · B bomb · F flares · 1 switch missile · 2 switch bomb · N night vision · O O eject · T AC-130 gunship orbit
 
 ## Weather & settings
 - Weather (Clear, Overcast, Rain, Snow, Fog) and time of day (Day, Dawn, Sunset, Night) are separate, so you can mix them — e.g. rain at sunset or fog at night. Change either any time from the pause menu.
@@ -84,7 +84,7 @@ Combat: Space guns · X missile · J bomb · 1 switch missile · 2 switch bomb �
 
 ## New aircraft
 - **B-2 Spirit**: 52 m flying wing with 16 bombs and no guns.
-- **AC-130J Ghostrider**: four-prop gunship. Press **T** for a gunship orbit — it flies a left-hand circle on its own while you aim the side guns through a thermal camera: Space = 30 mm, X = 105 mm.
+- **AC-130J Ghostrider**: four-prop gunship. Press **T** for a gunship orbit — it flies a left-hand circle on its own while you aim the side guns through a thermal camera: Space = 30 mm, M = 105 mm.
 - The jets' ailerons, flaps, stabilators and rudders now move with your controls.
 
 ## Desert Base
@@ -92,7 +92,7 @@ Combat: Space guns · X missile · J bomb · 1 switch missile · 2 switch bomb �
 
 ## Liveries & airbrakes
 - Pick a **livery** under the aircraft list in the menu. Every aircraft has two or three liveries made just for it (marked ★ — e.g. the F-16's Demo Team and Tiger Meet, the F-22's Checker Tail, the Chinook's Firefighter), plus the shared ones. Fighters and the B-2/AC-130 get camo schemes (Aggressor Blue, Desert, Arctic, Black Ops, Jungle, Show Red, Navy Gray); civil planes get color schemes; the military helicopters get Desert Tan, Navy Gray, Rescue, Night Black and Coast Guard Orange. Your choice is saved per aircraft, and other players see it.
-- Hold **B** (BRAKE on touch) in the air for the **airbrake**: the F-15E and F/A-18 raise the big panel on the back; the F-16, F-22, A-10 and B-2 split their ailerons open like a clamshell. It adds a lot of drag to slow down fast.
+- Hold **X** (BRAKE on touch) in the air for the **airbrake**: the F-15E and F/A-18 raise the big panel on the back; the F-16, F-22, A-10 and B-2 split their ailerons open like a clamshell. It adds a lot of drag to slow down fast.
 
 ## Weapons & loadouts
 - New detailed models: AIM-9X Sidewinder, AIM-120 AMRAAM, AGM-65 Maverick, AGM-114 Hellfire, Mk-82, GBU-12 Paveway II and GBU-31 JDAM. Missiles fly with a motor flame; GBU-12 tail wings unfold after release.
