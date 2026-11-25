@@ -96,7 +96,8 @@ Combat: Space guns · M missile · B bomb · F flares · 1 switch missile · 2 s
 
 ## Weapons & loadouts
 - New detailed models: AIM-9X Sidewinder, AIM-120 AMRAAM, AGM-65 Maverick, AGM-114 Hellfire, Mk-82, GBU-12 Paveway II and GBU-31 JDAM. Missiles fly with a motor flame; GBU-12 tail wings unfold after release.
-- Each aircraft carries a fixed loadout of these weapons (below); they hang on the pylons and disappear as you fire them.
+- **Loadout**: in the menu next to Livery, pick **two** weapon types for your aircraft (or just one). Each gets half the plane's weight limit — or all of it if it's alone — and the counts are filled in for you. They hang on the pylons and disappear as you fire them.
+- **Flares**: 30 per sortie (refilled when you respawn or rearm).
 - Each weapon behaves differently: Sidewinder (short range, agile, fooled by flares), AMRAAM (7.5 km lock, harder to decoy), Maverick and Hellfire (lock ground targets), Mk-82 (unguided — use the pipper), GBU-12 (laser-guided to your lock), JDAM (GPS: hits your lock or the pipper point, huge blast).
 - In flight: **1** switches missile type, **2** switches bomb type (MSL ▸ / BMB ▸ on touch). The HUD shows what's selected.
 - Loadouts: F-16 / F/A-18 (Sidewinder, AMRAAM, Maverick, Mk-82, GBU-12), F-22 (Sidewinder, AMRAAM, GBU-12), A-10 (Sidewinder, Maverick, Mk-82, GBU-12), F-15E (all but Hellfire), B-2 (Mk-82, GBU-12, JDAM), Apache (Hellfire, Sidewinder).
@@ -111,6 +112,6 @@ Combat: Space guns · M missile · B bomb · F flares · 1 switch missile · 2 s
 Fly with your real RC radio. The Spektrum wireless simulator dongle shows up as a USB joystick, which the browser can read (Chrome or Edge on PC/Mac, Chrome on Android).
 1. Bind your DSMX/DSM2 transmitter to the dongle (hold the bind button while plugging it in, then put the radio in bind mode).
 2. Open the game, **move a stick** (browsers only show a controller after it moves), then in the menu press **RC TRANSMITTER**.
-3. Press **RUN SETUP WIZARD** and follow the steps: throttle, aileron, elevator, rudder, then optional switches for gear, flaps, guns, missile, bomb and flares. It finds which channel is which and whether it needs reversing.
+3. Press **RUN SETUP WIZARD** and follow the steps: throttle, aileron, elevator, rudder, then the **trainer/bind button for guns** (hold it while pressing NEXT), then optional switches for gear, flaps, missile, bomb and flares. Without setup, any button on the dongle fires the guns. It finds which channel is which and whether it needs reversing.
 4. Adjust **Expo** if the sticks feel too twitchy. Your setup is saved.
 The throttle stick sets throttle directly (collective in helicopters). Any channel can also be set by hand, with a reverse box, and the live bars show every channel.

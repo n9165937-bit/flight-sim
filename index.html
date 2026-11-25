@@ -238,7 +238,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
     <button class="mbtn" id="resume"><b>▶ Resume flight</b><span>Back to where you left off</span></button>
     <div class="sec">AIRCRAFT</div>
     <div class="planes" id="planes"></div>
-    <div class="opts"><label>Livery <select id="selLiv"></select></label><button class="rcbtn" id="brc">RC TRANSMITTER</button><span id="rcstat"></span></div>
+    <div class="opts"><label>Livery <select id="selLiv"></select></label><label id="ldrow">Weapons <select id="ld1"></select> + <select id="ld2"></select> <span id="ldsum" style="color:#a9cce4;font-size:13px"></span></label><button class="rcbtn" id="brc">RC TRANSMITTER</button><span id="rcstat"></span></div>
     <div id="rcp" class="hidden"></div>
     <div class="sec">CONDITIONS</div>
     <div class="opts">
@@ -1583,9 +1583,13 @@ const LOADCFG={
 function loadCost(L){let c=0;for(const k in L)c+=(WPN[k]?WPN[k].cost:0)*L[k];return c}
 const _ldC={};
 function loadGet(id){if(_ldC[id])return Object.assign({},_ldC[id]);const r=loadGet0(id);_ldC[id]=r;return Object.assign({},r)}
-function loadGet0(id){const C=LOADCFG[id];if(!C)return{};return Object.assign({},C.def);let L=null;try{L=JSON.parse(lsGet('skyward_load_'+id)||'null')}catch(e){}
-  if(!L||typeof L!=='object')L=Object.assign({},C.def);const out={};for(const k in C.max)out[k]=clamp(L[k]|0,0,C.max[k]);if(loadCost(out)>C.cap+1e-6)return Object.assign({},C.def);return out}
-function loadSet(id,L){lsSet('skyward_load_'+id,JSON.stringify(L));delete _ldC[id]}
+// loadout = two weapon types (slot 2 may be empty); each gets half the weight limit, or all of it if it's alone
+const DEF2={f14:['aim120','aim9'],f16:['aim120','gbu12'],f18:['aim120','gbu12'],f22:['aim120','aim9'],a10:['agm65','gbu12'],f15e:['aim120','gbu12'],b2:['jdam','mk82'],b1:['jdam','mk82'],ah64:['hellfire','aim9'],p40:['mk82',null]};
+function loadSlots(id){const C=LOADCFG[id];if(!C)return[null,null];let v=null;try{v=JSON.parse(lsGet('skyward_slots_'+id)||'null')}catch(e){}
+  const ok=k=>k&&C.max[k]!=null;let a=v&&ok(v[0])?v[0]:(DEF2[id]||Object.keys(C.def))[0],b=v?v[1]:(DEF2[id]||Object.keys(C.def))[1];if(!ok(b)||b===a)b=null;return[a,b]}
+function loadGet0(id){const C=LOADCFG[id];if(!C)return{};const[a,b]=loadSlots(id),out={},share=b?C.cap/2:C.cap;
+  for(const k of[a,b])if(k)out[k]=Math.max(1,Math.min(C.max[k],Math.floor(share/WPN[k].cost+1e-6)));return out}
+function loadSet(id,slots){lsSet('skyward_slots_'+id,JSON.stringify(slots));delete _ldC[id]}
 function loadTotals(L){let m=0,b=0;for(const k in L)if(WPN[k])(WPN[k].k==='bomb'?b+=L[k]:m+=L[k]);return{m,b}}
 
 // model kit: bodies of revolution + swept fins; nose at +z (so lookAt() points it forward)
@@ -1621,7 +1625,11 @@ const SBSPLIT={f16:1,f22:1,a10:1,b2:1},SBDORSAL={f15e:[3.0,1.25,2.6,.8],f18:[4.2
 const SWING={b1:{deg:52,v0:115,v1:250},f14:{deg:48,v0:140,v1:265}};
 /* ---------------- liveries ---------------- */
 function myLiv(id){return +(lsGet('skyward_liv_'+id)||0)}
-function loadUI(){}
+function loadUI(){const row=$('ldrow');if(!row||!SP)return;const C=LOADCFG[SP.id];row.style.display=C?'':'none';if(!C)return;const[a,b]=loadSlots(SP.id),ks=Object.keys(C.max);
+  const opts=(cur,skip,none)=>(none?`<option value="">— none —</option>`:'')+ks.filter(k=>k!==skip).map(k=>`<option value="${k}" ${k===cur?'selected':''}>${WPN[k].sh}</option>`).join('');
+  $('ld1').innerHTML=opts(a,null,false);$('ld2').innerHTML=opts(b||'',a,true);$('ld2').disabled=ks.length<2;
+  const L=loadGet(SP.id);$('ldsum').textContent=Object.keys(L).map(k=>L[k]+'× '+WPN[k].sh).join(' + ');
+  const ch=()=>{const x=$('ld1').value;let y=$('ld2').value||null;if(y===x)y=null;loadSet(SP.id,[x,y]);armVisual(loadGet(SP.id));loadUI()};$('ld1').onchange=ch;$('ld2').onchange=ch}
 function livUI(){const el=typeof $==='function'&&$('selLiv');if(!el||!SP)return;el.innerHTML=livList(SP.id).map((l,i)=>`<option value="${i}">${l[0]}</option>`).join('');el.value=myLiv(SP.id);
   el.onchange=()=>{lsSet('skyward_liv_'+SP.id,el.value);selectPlane(SP.id)}}
 // jets with real-scale models: camouflage colours; everything else: base colour + two accent colours swapped into the painted texture
@@ -2708,7 +2716,7 @@ function wingDown(w){if(!w.alive)return;w.alive=false;const agl=w.pos.y-Math.max
 function dfClear(){ejReset();document.body.classList.remove('df');for(const w of WING)if(w.alive)scene.remove(w.model.g);WING.length=0;if(P.dmg&&Object.keys(P.dmg.lost).length)dfFresh();clearDebris();stClearUnits();ST.on=false;DF.strike=false;for(const b of DF.bombs)scene.remove(b.m);DF.bombs=[];for(const b of DF.bots)scene.remove(b.model.g);DF.bots=[];for(const m of DF.msl){sfxLoopEnd(m.snd);scene.remove(m.m)}DF.msl=[];DF.bul=[];for(const s of DF.sm)scene.remove(s.m);DF.sm=[];DF.flr.forEach(f=>scene.remove(f.m));DF.flr=[];
   DF.on=false;$('dfhud').classList.add('hidden');$('dfmk').innerHTML='';for(const n of['tfire','tmsl','tflr','tbmb','tmsel','tbsel'])$(n)&&$(n).classList.add('hidden')}
 function dfFresh(){P.dmg=newDmg();DF.lostMask=0;if(plane.g.userData.broken){scene.remove(plane.g);plane=makePlane(SP.id,false,myLiv(SP.id));scene.add(plane.g)}}
-function dfStart(keep,strike){gsOff();dfFresh();FUEL.on=true;FUEL.f=1;FUEL.out=false;FUEL.bingo=false;if(!TK.on&&SP.jet&&!SP.heli)tkStart(MAP==='ocean'?600:0,0);if(!keep){dfClear();DF.k=0;DF.d=0;DF.feed=[]}document.body.classList.add('df');setTimeout(()=>{if(!DF.on)return;if(!keep||!WING.length)wingStart();else for(const w of WING)if(w.alive){axes();w.pos.copy(P.pos).addScaledVector(_r,w.slot*45).addScaledVector(_f,-40*Math.abs(w.slot));w.f.set(_f.x,0,_f.z).normalize();w.v=P.vel.length()}},0);DF.on=true;DF.hp=100;const w=dfW(SP.id);DF.mslN=w.msl;DF.flrN=w.msl||w.bmb||w.gs?8:0;DF.bmbN=w.bmb;if(strike)DF.strike=true;DF.lock=0;DF.locked=null;DF.resp=0;dfArm();
+function dfStart(keep,strike){gsOff();dfFresh();FUEL.on=true;FUEL.f=1;FUEL.out=false;FUEL.bingo=false;if(!TK.on&&SP.jet&&!SP.heli)tkStart(MAP==='ocean'?600:0,0);if(!keep){dfClear();DF.k=0;DF.d=0;DF.feed=[]}document.body.classList.add('df');setTimeout(()=>{if(!DF.on)return;if(!keep||!WING.length)wingStart();else for(const w of WING)if(w.alive){axes();w.pos.copy(P.pos).addScaledVector(_r,w.slot*45).addScaledVector(_f,-40*Math.abs(w.slot));w.f.set(_f.x,0,_f.z).normalize();w.v=P.vel.length()}},0);DF.on=true;DF.hp=100;const w=dfW(SP.id);DF.mslN=w.msl;DF.flrN=w.msl||w.bmb||w.gs?30:0;DF.bmbN=w.bmb;if(strike)DF.strike=true;DF.lock=0;DF.locked=null;DF.resp=0;dfArm();
   $('dfhud').classList.remove('hidden');for(const n of['tfire','tmsl','tflr','tbmb'])$(n)&&$(n).classList.toggle('hidden',n==='tmsl'?!w.msl:n==='tflr'?!(w.msl||w.bmb||w.gs):n==='tbmb'?!w.bmb:false);
   // spawn somewhere open, high enough
   const a=Math.random()*Math.PI*2,r=Math.random()*2500,x=Math.cos(a)*r,z=Math.sin(a)*r,hd=Math.random()*Math.PI*2;
@@ -2722,8 +2730,8 @@ function dfStart(keep,strike){gsOff();dfFresh();FUEL.on=true;FUEL.f=1;FUEL.out=f
   showMsg('DOGFIGHT',nb?`${nb} ${$('selBots').value.includes('ace')?'ace':'rookie'} pilot${nb>1?'s':''} inbound · SPACE guns${w.msl?' · M missile · F flares':''}`:'Waiting for other pilots · SPACE guns','#ff6a5a',4000)}
 // yaw that points the nose (-Z) from (x,z) at (tx,tz)
 function faceTo(x,z,tx,tz){return Math.atan2(x-tx,z-tz)}
-function dfNeedsRearm(){const w=dfW(SP.id);return DF.hp<100||DF.mslN<w.msl||DF.bmbN<w.bmb||DF.flrN<(w.msl||w.bmb||w.gs?8:0)||(P.dmg&&Object.keys(P.dmg.lost).length>0)||(P.dmg&&(P.dmg.wingL||P.dmg.wingR||P.dmg.tail||P.dmg.engine))||(typeof FUEL!=='undefined'&&FUEL.f<.98)}
-function dfRearm(){const w=dfW(SP.id);DF.rearmed=true;DF.rearm=0;DF.hp=100;dfArm();DF.flrN=w.msl||w.bmb||w.gs?8:0;if(typeof FUEL!=='undefined')FUEL.f=1;
+function dfNeedsRearm(){const w=dfW(SP.id);return DF.hp<100||DF.mslN<w.msl||DF.bmbN<w.bmb||DF.flrN<(w.msl||w.bmb||w.gs?30:0)||(P.dmg&&Object.keys(P.dmg.lost).length>0)||(P.dmg&&(P.dmg.wingL||P.dmg.wingR||P.dmg.tail||P.dmg.engine))||(typeof FUEL!=='undefined'&&FUEL.f<.98)}
+function dfRearm(){const w=dfW(SP.id);DF.rearmed=true;DF.rearm=0;DF.hp=100;dfArm();DF.flrN=w.msl||w.bmb||w.gs?30:0;if(typeof FUEL!=='undefined')FUEL.f=1;
   if(plane.g.userData.broken){const vis=plane.g.visible;scene.remove(plane.g);plane=makePlane(SP.id,false,myLiv(SP.id));scene.add(plane.g);plane.g.visible=vis}armVisual(DF.ammo);P.dmg=newDmg();DF.lostMask=0;
   showMsg('REPAIRED & REARMED','Airframe fixed'+(w.msl?' · '+w.msl+' missiles':'')+(w.bmb?' · '+w.bmb+' bombs':'')+' · tanks full','#3cff8a',3000);beep(660,.12,'triangle',.15);setTimeout(()=>beep(990,.15,'triangle',.15),120)}
 function dfFeed(t){DF.feed.unshift({t,ttl:6});DF.feed.length=Math.min(DF.feed.length,5)}
@@ -3151,7 +3159,7 @@ const RCF=[['thr','Throttle / collective','Move the THROTTLE stick from idle all
   ['rud','Rudder (yaw)','Push the left stick to the RIGHT, then let it center.','dev'],
   ['gear','Gear switch (optional)','Flip the switch you want for landing gear. Press Skip if none.','sw'],
   ['flap','Flaps switch (optional)','Flip the switch you want for flaps (2 or 3 positions). Press Skip if none.','sw'],
-  ['fire','Guns switch (optional)','Flip the switch you want to fire guns while it is ON. Press Skip if none.','sw'],
+  ['fire','Guns: trainer / bind button','Press and hold the TRAINER (bind) button on your radio, then press NEXT while still holding it — or press NEXT on its own to use any button.','btn'],
   ['msl','Missile switch (optional)','Flip the switch you want to fire a missile each time you flip it. Press Skip if none.','sw'],
   ['bomb','Bomb switch (optional)','Flip the switch you want to drop a bomb each time you flip it. Press Skip if none.','sw'],
   ['flr','Flares switch (optional)','Flip the switch you want to pop flares. Press Skip if none.','sw']];
@@ -3160,7 +3168,7 @@ let RC=(()=>{try{const v=JSON.parse(lsGet('skyward_rc')||'null');return v&&v.map
 const rcSave=()=>lsSet('skyward_rc',JSON.stringify(RC));
 const rcLike=g=>!!g&&(/spektrum|ws[123]000|spm|horizon|rc ?sim|flysky|frsky|radiomaster|taranis|opentx|edgetx|jumper|dongle|wireless sim/i.test(g.id)||g.mapping!=='standard'&&g.axes.length>=4&&g.buttons.length<12);
 function rcPad(){const gps=navigator.getGamepads?[...navigator.getGamepads()].filter(Boolean):[];if(!gps.length)return null;return gps.find(g=>RC.id&&g.id===RC.id)||gps.find(rcLike)||null}
-const rcV=(g,m)=>{if(!m||m.a==null||m.a<0||g.axes[m.a]==null)return null;const v=g.axes[m.a];return m.inv?-v:v};
+const rcV=(g,m)=>{if(m&&m.b!=null&&m.b>=0){const bt=g.buttons[m.b];return bt?(bt.pressed||bt.value>.5?1:-1):null}if(!m||m.a==null||m.a<0||g.axes[m.a]==null)return null;const v=g.axes[m.a];return m.inv?-v:v};
 const rcExpo=v=>{const e=RC.expo||0,d=Math.abs(v)<.03?0:v;return d*(1-e)+d*d*d*e};
 const rcSt={};
 function rcInput(g,dt){const M=RC.map;
@@ -3169,7 +3177,7 @@ function rcInput(g,dt){const M=RC.map;
   const sw=k=>{const v=rcV(g,M[k]);return v==null?null:v};
   const gr=sw('gear');if(gr!=null){const on=gr>0;if(rcSt.gear!=null&&on!==rcSt.gear&&SP.retract)toggleGear();rcSt.gear=on}
   const fl=sw('flap');if(fl!=null&&!SP.heli){const pos=fl<-.5?0:fl>.5?3:1;if(pos!==rcSt.flap&&rcSt.flap!=null){P.flaps=pos;beep(300,.08,'square',.06)}rcSt.flap=pos}
-  const fi=sw('fire');RC.fireOn=fi!=null&&fi>.3;
+  const fi=sw('fire');RC.fireOn=fi!=null?fi>.3:[...g.buttons].some(b=>b&&(b.pressed||b.value>.5));
   for(const[k,fn]of[['msl',()=>GS.on?gsFire(105):dfMissileKey()],['bomb',dfBomb],['flr',dfFlares]]){const v=sw(k);if(v==null)continue;const on=v>.3;if(rcSt[k]!=null&&on!==rcSt[k])fn();rcSt[k]=on}}
 addEventListener('gamepadconnected',e=>{const g=e.gamepad;if(rcLike(g)||g.id===RC.id){$('rcstat')&&($('rcstat').textContent='Connected: '+g.id.slice(0,40));if(state==='play')showMsg('RC TRANSMITTER CONNECTED',RC.id?'Using your saved setup':'Open the menu → RC TRANSMITTER to set it up','#7dffb0',3000)}});
 // ---- setup panel + wizard ----
@@ -3177,8 +3185,8 @@ const RCW={step:-1,base:null,mx:null,first:null,last:null};
 function rcPanel(){const pn=$('rcp');if(pn.classList.contains('hidden'))return;const g=rcPad()||(navigator.getGamepads?[...navigator.getGamepads()].find(Boolean):null);
   if(!g){pn.innerHTML='<h4>RC TRANSMITTER</h4><p>No transmitter found yet. Plug in the WS3000T, turn on your transmitter (it should be bound — solid LED on the dongle), then <b>move a stick</b> so the browser can see it.</p><div class="row"><button class="rcbtn" id="rcclose">CLOSE</button></div>';$('rcclose').onclick=()=>pn.classList.add('hidden');return}
   const bars=g.axes.map((v,i)=>{const used=Object.entries(RC.map).find(([k,m])=>m&&m.a===i);return`<div class="ax"><span>Axis ${i}</span><em><i style="left:${v<0?50+v*50:50}%;width:${Math.abs(v)*50}%"></i></em><span>${used?used[0].toUpperCase():''}</span></div>`}).join('');
-  let wiz='';if(RCW.step>=0){const f=RCF[RCW.step];wiz=`<div class="wiz"><b>Step ${RCW.step+1} of ${RCF.length}: ${f[1]}</b><br>${f[2]}</div><div class="row"><button class="rcbtn" id="rcnext">NEXT</button>${f[3]==='sw'?'<button class="rcbtn" id="rcskip">SKIP</button>':''}<button class="rcbtn" id="rcstop">CANCEL</button></div>`}
-  const opt=(k)=>{const m=RC.map[k]||{a:-1};return`<select data-k="${k}"><option value="-1">none</option>${g.axes.map((_,i)=>`<option value="${i}" ${m.a===i?'selected':''}>Axis ${i}</option>`).join('')}</select><label style="font-size:12px"><input type="checkbox" data-inv="${k}" ${m.inv?'checked':''}> reverse</label>`};
+  let wiz='';if(RCW.step>=0){const f=RCF[RCW.step];wiz=`<div class="wiz"><b>Step ${RCW.step+1} of ${RCF.length}: ${f[1]}</b><br>${f[2]}</div><div class="row"><button class="rcbtn" id="rcnext">NEXT</button>${f[3]==='sw'||f[3]==='btn'?'<button class="rcbtn" id="rcskip">SKIP</button>':''}<button class="rcbtn" id="rcstop">CANCEL</button></div>`}
+  const opt=(k)=>{const m=RC.map[k]||{a:-1};return`<select data-k="${k}"><option value="-1">${k==='fire'?'any button':'none'}</option>${g.axes.map((_,i)=>`<option value="${i}" ${m.a===i&&!(m.b>=0)?'selected':''}>Axis ${i}</option>`).join('')}${k==='fire'?g.buttons.map((_,i)=>`<option value="b${i}" ${m.b===i?'selected':''}>Button ${i}</option>`).join(''):''}</select><label style="font-size:12px"><input type="checkbox" data-inv="${k}" ${m.inv?'checked':''}> reverse</label>`};
   if(RCW.step>=0&&pn.dataset.mode==='wiz'){pn.querySelectorAll('.ax').forEach((el,i)=>{const v=g.axes[i];const b=el.querySelector('i');b.style.left=(v<0?50+v*50:50)+'%';b.style.width=Math.abs(v)*50+'%'});return}
   if(pn.dataset.mode==='map'&&RCW.step<0){pn.querySelectorAll('.ax').forEach((el,i)=>{const v=g.axes[i];const b=el.querySelector('i');if(b){b.style.left=(v<0?50+v*50:50)+'%';b.style.width=Math.abs(v)*50+'%'}});return}
   pn.dataset.mode=RCW.step>=0?'wiz':'map';
@@ -3188,14 +3196,16 @@ function rcPanel(){const pn=$('rcp');if(pn.classList.contains('hidden'))return;c
     <div class="row"><button class="rcbtn" id="rcreset">RESET</button><button class="rcbtn" id="rcclose">CLOSE</button></div>`:'');
   const q=x=>pn.querySelector(x);
   if(RCW.step<0){q('#rcwiz').onclick=()=>{RC.id=g.id;rcStart(0)};q('#rcon').onchange=e=>{RC.on=e.target.checked;rcSave()};q('#rcexpo').onchange=e=>{RC.expo=+e.target.value;rcSave()};
-    pn.querySelectorAll('select[data-k]').forEach(el=>el.onchange=()=>{const k=el.dataset.k;RC.map[k]=Object.assign(RC.map[k]||{inv:false},{a:+el.value});RC.id=g.id;rcSave();pn.dataset.mode='';rcPanel()});
+    pn.querySelectorAll('select[data-k]').forEach(el=>el.onchange=()=>{const k=el.dataset.k,v=el.value;RC.map[k]=Object.assign(RC.map[k]||{inv:false},v[0]==='b'?{b:+v.slice(1),a:-1}:{a:+v,b:-1});RC.id=g.id;rcSave();pn.dataset.mode='';rcPanel()});
     pn.querySelectorAll('input[data-inv]').forEach(el=>el.onchange=()=>{const k=el.dataset.inv;RC.map[k]=Object.assign(RC.map[k]||{a:-1},{inv:el.checked});rcSave()});
     q('#rcreset').onclick=()=>{RC=JSON.parse(JSON.stringify(RC_DEF));rcSave();pn.dataset.mode='';rcPanel()};q('#rcclose').onclick=()=>pn.classList.add('hidden')}
   else{q('#rcnext').onclick=rcNext;if(q('#rcskip'))q('#rcskip').onclick=()=>{RC.map[RCF[RCW.step][0]]={a:-1,inv:false};rcStart(RCW.step+1)};q('#rcstop').onclick=()=>{RCW.step=-1;pn.dataset.mode='';rcPanel()}}}
 function rcStart(i){const g=rcPad()||[...navigator.getGamepads()].find(Boolean);RCW.step=i;if(i>=RCF.length){RCW.step=-1;RC.on=true;rcSave();$('rcp').dataset.mode='';rcPanel();$('rcstat').textContent='Set up: '+g.id.slice(0,30);return}
-  RCW.base=[...g.axes];RCW.mx=g.axes.map(()=>0);RCW.min=[...g.axes];RCW.max=[...g.axes];RCW.first=[...g.axes];$('rcp').dataset.mode='';rcPanel()}
-function rcTrack(){if(RCW.step<0)return;const g=rcPad()||[...navigator.getGamepads()].find(Boolean);if(!g)return;g.axes.forEach((v,i)=>{const d=v-RCW.base[i];if(Math.abs(d)>Math.abs(RCW.mx[i]))RCW.mx[i]=d;RCW.min[i]=Math.min(RCW.min[i],v);RCW.max[i]=Math.max(RCW.max[i],v)})}
-function rcNext(){const f=RCF[RCW.step],used=Object.entries(RC.map).filter(([k,m])=>m&&m.a>=0&&k!==f[0]&&RCF.findIndex(x=>x[0]===k)<RCW.step).map(([k,m])=>m.a);
+  RCW.btn=-1;RCW.base=[...g.axes];RCW.mx=g.axes.map(()=>0);RCW.min=[...g.axes];RCW.max=[...g.axes];RCW.first=[...g.axes];$('rcp').dataset.mode='';rcPanel()}
+function rcTrack(){if(RCW.step<0)return;const g=rcPad()||[...navigator.getGamepads()].find(Boolean);if(!g)return;g.buttons.forEach((b,i)=>{if(b&&(b.pressed||b.value>.5))RCW.btn=i});g.axes.forEach((v,i)=>{const d=v-RCW.base[i];if(Math.abs(d)>Math.abs(RCW.mx[i]))RCW.mx[i]=d;RCW.min[i]=Math.min(RCW.min[i],v);RCW.max[i]=Math.max(RCW.max[i],v)})}
+function rcNext(){if(RCF[RCW.step][3]==='btn'){const f=RCF[RCW.step];let best=-1,bv=.6;RCW.mx.forEach((d,i)=>{const used=Object.entries(RC.map).some(([k,m])=>m&&m.a===i&&k!==f[0]);if(!used&&Math.abs(d)>bv){bv=Math.abs(d);best=i}});
+    RC.map.fire=RCW.btn>=0?{b:RCW.btn,a:-1,inv:false}:best>=0?{a:best,inv:RCW.mx[best]<0}:{a:-1,inv:false};if(RCW.btn<0&&best<0)showMsg('GUNS','Any button on the dongle will fire the guns','#7dffb0',1800);rcSave();rcStart(RCW.step+1);return}
+  const f=RCF[RCW.step],used=Object.entries(RC.map).filter(([k,m])=>m&&m.a>=0&&k!==f[0]&&RCF.findIndex(x=>x[0]===k)<RCW.step).map(([k,m])=>m.a);
   let best=-1,bv=.25;RCW.mx.forEach((d,i)=>{if(used.includes(i))return;const r=f[3]==='range'?RCW.max[i]-RCW.min[i]:Math.abs(d);if(r>bv){bv=r;best=i}});
   if(best<0){showMsg('NOTHING MOVED','Move the stick or switch all the way, then press NEXT','#ffd23a',1800);return}
   let inv=false;if(f[3]==='dev')inv=RCW.mx[best]<0;else if(f[3]==='range')inv=false;
