@@ -86,7 +86,17 @@ body.gs #adi,body.gs #map,body.gs #ctl,body.gs #spd,body.gs #alt,body.gs #actbtn
 .bar span{width:52px}
 .bar em{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.12);position:relative;overflow:hidden}
 .bar em:after{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--v);background:linear-gradient(90deg,#7fd8ff,#7dffb0)}
-.opts{display:flex;gap:16px;flex-wrap:wrap}
+.opts{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.rcbtn{background:rgba(255,210,122,.15);color:#ffd27a;border:1px solid rgba(255,210,122,.5);border-radius:8px;padding:6px 12px;font:700 13px 'Rajdhani',sans-serif;letter-spacing:1px;cursor:pointer}
+#rcstat{color:#a9cce4;font-size:13px}
+#rcp{margin-top:10px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,210,122,.35);background:rgba(10,20,30,.7);font-size:14px}
+#rcp h4{margin:0 0 6px;font:700 16px 'Rajdhani',sans-serif;letter-spacing:1px;color:#ffd27a}
+#rcp .ax{display:grid;grid-template-columns:52px minmax(0,1fr) 46px;gap:8px;align-items:center;margin:2px 0;font-size:12px;color:#cfe6f7}
+#rcp .ax em{height:10px;border-radius:5px;background:rgba(255,255,255,.1);position:relative;overflow:hidden}#rcp .ax em i{position:absolute;top:0;bottom:0;background:#7dffb0}
+#rcp .mp{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;margin:4px 0}
+#rcp select{background:rgba(20,45,70,.8);color:#fff;border:1px solid rgba(160,220,255,.3);border-radius:6px;padding:4px}
+#rcp .wiz{margin:8px 0;padding:10px;border-radius:10px;background:rgba(255,210,122,.12);color:#ffe7b0;font-size:15px}
+#rcp .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .opts label{font-size:14px;color:#cfe6f7;display:flex;align-items:center;gap:8px}
 select{background:rgba(20,45,70,.8);color:#fff;border:1px solid rgba(160,220,255,.35);border-radius:8px;padding:6px 8px;font:600 14px 'Rajdhani',sans-serif}
 .modes{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
@@ -228,7 +238,8 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
     <button class="mbtn" id="resume"><b>▶ Resume flight</b><span>Back to where you left off</span></button>
     <div class="sec">AIRCRAFT</div>
     <div class="planes" id="planes"></div>
-    <div class="opts"><label>Livery <select id="selLiv"></select></label></div>
+    <div class="opts"><label>Livery <select id="selLiv"></select></label><button class="rcbtn" id="brc">RC TRANSMITTER</button><span id="rcstat"></span></div>
+    <div id="rcp" class="hidden"></div>
     <div class="sec">CONDITIONS</div>
     <div class="opts">
       <label>Airport <select id="selApt"></select></label>
@@ -2328,7 +2339,7 @@ function gsStep(dt){const up=new V3(0,1,0);let u=new V3(P.pos.x-GS.c.x,0,P.pos.z
   P.q.setFromRotationMatrix(new THREE.Matrix4().makeBasis(rt,upB,f.clone().negate()));P.vel.copy(f).multiplyScalar(v);P.w.set(0,0,0);P.onGround=false;P.throttle=P.spool=.7;P.airTime+=dt;P.ias=v;
   // slew the sensor with the stick
   GS.ay=clamp(GS.ay-IN.roll*dt*.35,-.5,.5);GS.ap=clamp(GS.ap+IN.pitch*dt*.3,-.35,.35);
-  GS.cd30-=dt;GS.cd105-=dt;if((keys.Space||touch.fire||DF.fireHeld)&&GS.cd30<=0)gsFire(30)}
+  GS.cd30-=dt;GS.cd105-=dt;if((keys.Space||touch.fire||DF.fireHeld||RC.fireOn)&&GS.cd30<=0)gsFire(30)}
 const _gsG30=new THREE.SphereGeometry(.5,6,4),_gsG105=new THREE.SphereGeometry(1.1,8,6);
 function gsFire(cal){if(!GS.on||P.crashed)return;if(cal===105){if(GS.cd105>0){beep(300,.05,'square',.04);return}GS.cd105=2.6}else GS.cd30=.3;
   const d=gsAim(),muzzle=P.pos.clone().add(new V3(GS.c.x-P.pos.x,0,GS.c.z-P.pos.z).setLength(3)).add(new V3(0,-1,0));
@@ -2861,7 +2872,7 @@ function updateDogfight(dt){if(!DF.on)return;const now=performance.now()/1000;ax
   updateStrike(dt);updateBombs(dt);DF.bmbCD-=dt;
   const T=dfTargets();
   // player guns
-  DF.gunT-=dt;DF.mslCD-=dt;const firing=(keys.Space||touch.fire||DF.fireHeld)&&!P.crashed&&!P.onGround;
+  DF.gunT-=dt;DF.mslCD-=dt;const firing=(keys.Space||touch.fire||DF.fireHeld||RC.fireOn)&&!P.crashed&&!P.onGround;
   if(firing&&DF.gunT<=0&&dfW(SP.id).gun&&!GS.on){const w=dfW(SP.id);DF.gunT=1/w.gun;let aim=_f.clone();
     for(const t of T){const d=t.pos.distanceTo(P.pos);if(d>1300)continue;const tof=d/980,lp=t.pos.clone().addScaledVector(t.vel||_tmp.set(0,0,0),tof).addScaledVector(P.vel,-tof).sub(P.pos).normalize();if(dfAngle(_f,lp)<3.2*DEG){aim.lerp(lp,.85).normalize();break}}
     dfShoot(P.pos.clone().addScaledVector(_f,SP.span*.35).addScaledVector(_u,-.3),aim,P.vel,'me',w.dmg,.35,false);DF.netFire=.2}
@@ -3131,6 +3142,65 @@ if(isTouch){document.body.classList.add('touch');
   const tb=$('tbrk');tb.addEventListener('pointerdown',()=>touch.brake=true);tb.addEventListener('pointerup',()=>touch.brake=false);tb.addEventListener('pointercancel',()=>touch.brake=false);tb.addEventListener('pointerleave',()=>touch.brake=false);tb.addEventListener('pointerdown',e=>e.preventDefault());
 }
 let gpFlapLatch=false,gpCamLatch=false,gpGearLatch=false;
+/* ---------------- RC transmitters (Spektrum WS1000/WS2000/WS3000 dongles and other RC-to-USB joysticks) ----------------
+   The dongle shows up as a plain USB joystick: each transmitter channel is one axis, the throttle stays where you leave it,
+   and switches are axes too. A setup wizard finds which axis is which on your radio. */
+const RCF=[['thr','Throttle / collective','Move the THROTTLE stick from idle all the way up, then back to idle.','range'],
+  ['ail','Aileron (roll)','Push the right stick to the RIGHT, then let it center.','dev'],
+  ['ele','Elevator (pitch)','Pull the right stick BACK toward you (nose up), then let it center.','dev'],
+  ['rud','Rudder (yaw)','Push the left stick to the RIGHT, then let it center.','dev'],
+  ['gear','Gear switch (optional)','Flip the switch you want for landing gear. Press Skip if none.','sw'],
+  ['flap','Flaps switch (optional)','Flip the switch you want for flaps (2 or 3 positions). Press Skip if none.','sw'],
+  ['fire','Guns switch (optional)','Flip the switch you want to fire guns while it is ON. Press Skip if none.','sw'],
+  ['msl','Missile switch (optional)','Flip the switch you want to fire a missile each time you flip it. Press Skip if none.','sw'],
+  ['bomb','Bomb switch (optional)','Flip the switch you want to drop a bomb each time you flip it. Press Skip if none.','sw'],
+  ['flr','Flares switch (optional)','Flip the switch you want to pop flares. Press Skip if none.','sw']];
+const RC_DEF={on:true,id:'',expo:.3,map:{thr:{a:2,inv:false},ail:{a:0,inv:false},ele:{a:1,inv:false},rud:{a:3,inv:false}}};
+let RC=(()=>{try{const v=JSON.parse(lsGet('skyward_rc')||'null');return v&&v.map?v:JSON.parse(JSON.stringify(RC_DEF))}catch(e){return JSON.parse(JSON.stringify(RC_DEF))}})();
+const rcSave=()=>lsSet('skyward_rc',JSON.stringify(RC));
+const rcLike=g=>!!g&&(/spektrum|ws[123]000|spm|horizon|rc ?sim|flysky|frsky|radiomaster|taranis|opentx|edgetx|jumper|dongle|wireless sim/i.test(g.id)||g.mapping!=='standard'&&g.axes.length>=4&&g.buttons.length<12);
+function rcPad(){const gps=navigator.getGamepads?[...navigator.getGamepads()].filter(Boolean):[];if(!gps.length)return null;return gps.find(g=>RC.id&&g.id===RC.id)||gps.find(rcLike)||null}
+const rcV=(g,m)=>{if(!m||m.a==null||m.a<0||g.axes[m.a]==null)return null;const v=g.axes[m.a];return m.inv?-v:v};
+const rcExpo=v=>{const e=RC.expo||0,d=Math.abs(v)<.03?0:v;return d*(1-e)+d*d*d*e};
+const rcSt={};
+function rcInput(g,dt){const M=RC.map;
+  const a=rcV(g,M.ail),e=rcV(g,M.ele),r=rcV(g,M.rud),t=rcV(g,M.thr);
+  if(a!=null)IN.roll=rcExpo(a);if(e!=null)IN.pitch=rcExpo(e);if(r!=null)IN.yaw=rcExpo(r);if(t!=null)P.throttle=clamp((t+1)/2,0,1);
+  const sw=k=>{const v=rcV(g,M[k]);return v==null?null:v};
+  const gr=sw('gear');if(gr!=null){const on=gr>0;if(rcSt.gear!=null&&on!==rcSt.gear&&SP.retract)toggleGear();rcSt.gear=on}
+  const fl=sw('flap');if(fl!=null&&!SP.heli){const pos=fl<-.5?0:fl>.5?3:1;if(pos!==rcSt.flap&&rcSt.flap!=null){P.flaps=pos;beep(300,.08,'square',.06)}rcSt.flap=pos}
+  const fi=sw('fire');RC.fireOn=fi!=null&&fi>.3;
+  for(const[k,fn]of[['msl',()=>GS.on?gsFire(105):dfMissileKey()],['bomb',dfBomb],['flr',dfFlares]]){const v=sw(k);if(v==null)continue;const on=v>.3;if(rcSt[k]!=null&&on!==rcSt[k])fn();rcSt[k]=on}}
+addEventListener('gamepadconnected',e=>{const g=e.gamepad;if(rcLike(g)||g.id===RC.id){$('rcstat')&&($('rcstat').textContent='Connected: '+g.id.slice(0,40));if(state==='play')showMsg('RC TRANSMITTER CONNECTED',RC.id?'Using your saved setup':'Open the menu → RC TRANSMITTER to set it up','#7dffb0',3000)}});
+// ---- setup panel + wizard ----
+const RCW={step:-1,base:null,mx:null,first:null,last:null};
+function rcPanel(){const pn=$('rcp');if(pn.classList.contains('hidden'))return;const g=rcPad()||(navigator.getGamepads?[...navigator.getGamepads()].find(Boolean):null);
+  if(!g){pn.innerHTML='<h4>RC TRANSMITTER</h4><p>No transmitter found yet. Plug in the WS3000T, turn on your transmitter (it should be bound — solid LED on the dongle), then <b>move a stick</b> so the browser can see it.</p><div class="row"><button class="rcbtn" id="rcclose">CLOSE</button></div>';$('rcclose').onclick=()=>pn.classList.add('hidden');return}
+  const bars=g.axes.map((v,i)=>{const used=Object.entries(RC.map).find(([k,m])=>m&&m.a===i);return`<div class="ax"><span>Axis ${i}</span><em><i style="left:${v<0?50+v*50:50}%;width:${Math.abs(v)*50}%"></i></em><span>${used?used[0].toUpperCase():''}</span></div>`}).join('');
+  let wiz='';if(RCW.step>=0){const f=RCF[RCW.step];wiz=`<div class="wiz"><b>Step ${RCW.step+1} of ${RCF.length}: ${f[1]}</b><br>${f[2]}</div><div class="row"><button class="rcbtn" id="rcnext">NEXT</button>${f[3]==='sw'?'<button class="rcbtn" id="rcskip">SKIP</button>':''}<button class="rcbtn" id="rcstop">CANCEL</button></div>`}
+  const opt=(k)=>{const m=RC.map[k]||{a:-1};return`<select data-k="${k}"><option value="-1">none</option>${g.axes.map((_,i)=>`<option value="${i}" ${m.a===i?'selected':''}>Axis ${i}</option>`).join('')}</select><label style="font-size:12px"><input type="checkbox" data-inv="${k}" ${m.inv?'checked':''}> reverse</label>`};
+  if(RCW.step>=0&&pn.dataset.mode==='wiz'){pn.querySelectorAll('.ax').forEach((el,i)=>{const v=g.axes[i];const b=el.querySelector('i');b.style.left=(v<0?50+v*50:50)+'%';b.style.width=Math.abs(v)*50+'%'});return}
+  if(pn.dataset.mode==='map'&&RCW.step<0){pn.querySelectorAll('.ax').forEach((el,i)=>{const v=g.axes[i];const b=el.querySelector('i');if(b){b.style.left=(v<0?50+v*50:50)+'%';b.style.width=Math.abs(v)*50+'%'}});return}
+  pn.dataset.mode=RCW.step>=0?'wiz':'map';
+  pn.innerHTML=`<h4>RC TRANSMITTER</h4><div style="color:#a9cce4;font-size:12px;margin-bottom:6px">${g.id.slice(0,70)}</div>${wiz}${bars}`+(RCW.step<0?`
+    <div class="row"><button class="rcbtn" id="rcwiz">RUN SETUP WIZARD</button><label><input type="checkbox" id="rcon" ${RC.on?'checked':''}> use transmitter</label><label>Expo <select id="rcexpo">${[0,.15,.3,.45,.6].map(x=>`<option value="${x}" ${Math.abs(RC.expo-x)<.01?'selected':''}>${Math.round(x*100)}%</option>`).join('')}</select></label></div>
+    ${RCF.map(([k,n])=>`<div class="mp"><span>${n}</span>${opt(k)}</div>`).join('')}
+    <div class="row"><button class="rcbtn" id="rcreset">RESET</button><button class="rcbtn" id="rcclose">CLOSE</button></div>`:'');
+  const q=x=>pn.querySelector(x);
+  if(RCW.step<0){q('#rcwiz').onclick=()=>{RC.id=g.id;rcStart(0)};q('#rcon').onchange=e=>{RC.on=e.target.checked;rcSave()};q('#rcexpo').onchange=e=>{RC.expo=+e.target.value;rcSave()};
+    pn.querySelectorAll('select[data-k]').forEach(el=>el.onchange=()=>{const k=el.dataset.k;RC.map[k]=Object.assign(RC.map[k]||{inv:false},{a:+el.value});RC.id=g.id;rcSave();pn.dataset.mode='';rcPanel()});
+    pn.querySelectorAll('input[data-inv]').forEach(el=>el.onchange=()=>{const k=el.dataset.inv;RC.map[k]=Object.assign(RC.map[k]||{a:-1},{inv:el.checked});rcSave()});
+    q('#rcreset').onclick=()=>{RC=JSON.parse(JSON.stringify(RC_DEF));rcSave();pn.dataset.mode='';rcPanel()};q('#rcclose').onclick=()=>pn.classList.add('hidden')}
+  else{q('#rcnext').onclick=rcNext;if(q('#rcskip'))q('#rcskip').onclick=()=>{RC.map[RCF[RCW.step][0]]={a:-1,inv:false};rcStart(RCW.step+1)};q('#rcstop').onclick=()=>{RCW.step=-1;pn.dataset.mode='';rcPanel()}}}
+function rcStart(i){const g=rcPad()||[...navigator.getGamepads()].find(Boolean);RCW.step=i;if(i>=RCF.length){RCW.step=-1;RC.on=true;rcSave();$('rcp').dataset.mode='';rcPanel();$('rcstat').textContent='Set up: '+g.id.slice(0,30);return}
+  RCW.base=[...g.axes];RCW.mx=g.axes.map(()=>0);RCW.min=[...g.axes];RCW.max=[...g.axes];RCW.first=[...g.axes];$('rcp').dataset.mode='';rcPanel()}
+function rcTrack(){if(RCW.step<0)return;const g=rcPad()||[...navigator.getGamepads()].find(Boolean);if(!g)return;g.axes.forEach((v,i)=>{const d=v-RCW.base[i];if(Math.abs(d)>Math.abs(RCW.mx[i]))RCW.mx[i]=d;RCW.min[i]=Math.min(RCW.min[i],v);RCW.max[i]=Math.max(RCW.max[i],v)})}
+function rcNext(){const f=RCF[RCW.step],used=Object.entries(RC.map).filter(([k,m])=>m&&m.a>=0&&k!==f[0]&&RCF.findIndex(x=>x[0]===k)<RCW.step).map(([k,m])=>m.a);
+  let best=-1,bv=.25;RCW.mx.forEach((d,i)=>{if(used.includes(i))return;const r=f[3]==='range'?RCW.max[i]-RCW.min[i]:Math.abs(d);if(r>bv){bv=r;best=i}});
+  if(best<0){showMsg('NOTHING MOVED','Move the stick or switch all the way, then press NEXT','#ffd23a',1800);return}
+  let inv=false;if(f[3]==='dev')inv=RCW.mx[best]<0;else if(f[3]==='range')inv=false;
+  RC.map[f[0]]={a:best,inv};if(f[0]==='thr'){const cur=(rcPad()||[...navigator.getGamepads()].find(Boolean)).axes[best];RC.map.thr.inv=cur>0}   // throttle back at idle now: idle should read -1
+  rcSave();rcStart(RCW.step+1)}
 function pollInput(dt){
   let p=0,r=0,y=0;
   if(keys.KeyS||keys.ArrowDown)p+=1;if(keys.KeyW||keys.ArrowUp)p-=1;
@@ -3144,7 +3214,8 @@ function pollInput(dt){
   const ramp=(c,t,up,dn)=>{const r=(t!==0&&Math.sign(t)===Math.sign(c||t)&&Math.abs(t)>Math.abs(c))?up:dn;return c+clamp(t-c,-r*dt,r*dt)};
   IN.pitch=ramp(IN.pitch,p,2.2,5);IN.roll=ramp(IN.roll,r,3.5,7);IN.yaw=ramp(IN.yaw,y,3,6);
   let gpBrake=false;
-  const gps=navigator.getGamepads?navigator.getGamepads():[];const gp=gps&&[...gps].find(g=>g);
+  const rcg=RC.on?rcPad():null;if(rcg&&state==='play'&&RCW.step<0)rcInput(rcg,dt);else RC.fireOn=false;
+  const gps=navigator.getGamepads?navigator.getGamepads():[];const gp=gps&&[...gps].find(g=>g&&g!==rcg);
   if(gp&&state==='play'){const dz=v=>Math.abs(v)<.12?0:v;
     const ax=dz(gp.axes[0]||0),ay=dz(gp.axes[1]||0),ax2=dz(gp.axes[2]||0);
     if(ax||ay){IN.roll=ax;IN.pitch=ay}if(ax2)IN.yaw=ax2;
@@ -3453,7 +3524,7 @@ function resume(){document.body.classList.add('playing');state='play';$('menu').
 document.querySelectorAll('.mbtn[data-mode]').forEach(b=>b.addEventListener('click',()=>{initAudio();if(AC&&AC.state==='suspended')AC.resume();startMode(b.dataset.mode);resume();$('help').classList.toggle('hidden',isTouch);setTimeout(()=>{if(state==='play')$('help').classList.add('hidden')},12000)}));
 $('resume').onclick=()=>{if(AC&&AC.state==='suspended')AC.resume();resume()};
 $('bpause').onclick=pause;$('bsnd').onclick=toggleSound;$('bsnd').textContent=sndOn?'SOUND ON':'SOUND OFF';$('bhelp').onclick=()=>$('help').classList.toggle('hidden');
-$('rretry').onclick=retry;if($('tmsel'))$('tmsel').onclick=()=>dfSelect('m');if($('tbsel'))$('tbsel').onclick=()=>dfSelect('b');for(const[a,f]of[['tgs',()=>gsToggle()],['bgs',()=>gsToggle()]])if($(a))$(a).onclick=f;if($('tej'))$('tej').onclick=ejectKey;$('bfup').onclick=flapsUp;$('bfdn').onclick=flapsDown;$('bgear').onclick=toggleGear;$('bcobra').onclick=doCobra;$('bnvg').onclick=toggleNVG;if($('tnvg'))$('tnvg').onclick=toggleNVG;if($('tgear')){$('tgear').onclick=toggleGear;$('tcob').onclick=doCobra}$('rnext').onclick=newApproach;$('rmenu').onclick=pause;
+$('rretry').onclick=retry;$('brc').onclick=()=>{const pn=$('rcp');pn.classList.toggle('hidden');pn.dataset.mode='';rcPanel()};setInterval(()=>{if(!$('rcp').classList.contains('hidden')){rcTrack();rcPanel()}},50);if($('tmsel'))$('tmsel').onclick=()=>dfSelect('m');if($('tbsel'))$('tbsel').onclick=()=>dfSelect('b');for(const[a,f]of[['tgs',()=>gsToggle()],['bgs',()=>gsToggle()]])if($(a))$(a).onclick=f;if($('tej'))$('tej').onclick=ejectKey;$('bfup').onclick=flapsUp;$('bfdn').onclick=flapsDown;$('bgear').onclick=toggleGear;$('bcobra').onclick=doCobra;$('bnvg').onclick=toggleNVG;if($('tnvg'))$('tnvg').onclick=toggleNVG;if($('tgear')){$('tgear').onclick=toggleGear;$('tcob').onclick=doCobra}$('rnext').onclick=newApproach;$('rmenu').onclick=pause;
 $('bfs').onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}catch(e){}};
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
@@ -3474,7 +3545,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last
       else if(dtEma>1/40&&GFX.pr<=GFX.min&&sun.castShadow)sun.castShadow=false}}
   pollInput(dt);
   if(state==='play'){updateWind(now);prevPos.copy(P.pos);acc+=dt;let n=0;while(acc>=STEP&&n<8){step(STEP);acc-=STEP;n++}if(n===8)acc=0;checkRings();landCheck(dt);updateMission(dt);updateDogfight(dt);tkUpdate(dt);}
-  updateVisuals(state==='paused'?0:dt);updateCamera(dt,now);updateCockpit(dt);updateDebris(state==='paused'?0:dt);updateEject(state==='paused'?0:dt);updateGunship(state==='paused'?0:dt);updatePrecip(state==='paused'?0:dt);
+  updateVisuals(state==='paused'?0:dt);updateCamera(dt,now);updateCockpit(dt);updateDebris(state==='paused'?0:dt);updateEject(state==='paused'?0:dt);if(RCW.step>=0)rcTrack();updateGunship(state==='paused'?0:dt);updatePrecip(state==='paused'?0:dt);
   if(state==='play'){hudAcc+=dt;if(hudAcc>=1/30){updateHUD(hudAcc);tkHUD();hudAcc=0}}
   if(camMode!==camSaved){camSaved=camMode;lsSet('skyward_cam',String(camMode))}
   updateAudio(dt);

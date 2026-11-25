@@ -106,3 +106,11 @@ Combat: Space guns · M missile · B bomb · F flares · 1 switch missile · 2 s
 - **SR-71 Blackbird**: Mach 3 spy plane. Handles like a big jet down low; climb past 60,000 ft and it keeps accelerating toward Mach 3. No weapons.
 - **P-40 Warhawk**: WWII shark-mouth fighter with six .50 cals and one 500 lb bomb; flies Dogfight and Strike.
 - **F-14 Tomcat**: twin-tail Navy fighter with swing wings that sweep back as you speed up; Sidewinders, AMRAAMs and GBU-12s, and it launches and traps on the carriers.
+
+## RC transmitter (Spektrum WS1000 / WS2000 / WS3000T dongle)
+Fly with your real RC radio. The Spektrum wireless simulator dongle shows up as a USB joystick, which the browser can read (Chrome or Edge on PC/Mac, Chrome on Android).
+1. Bind your DSMX/DSM2 transmitter to the dongle (hold the bind button while plugging it in, then put the radio in bind mode).
+2. Open the game, **move a stick** (browsers only show a controller after it moves), then in the menu press **RC TRANSMITTER**.
+3. Press **RUN SETUP WIZARD** and follow the steps: throttle, aileron, elevator, rudder, then optional switches for gear, flaps, guns, missile, bomb and flares. It finds which channel is which and whether it needs reversing.
+4. Adjust **Expo** if the sticks feel too twitchy. Your setup is saved.
+The throttle stick sets throttle directly (collective in helicopters). Any channel can also be set by hand, with a reverse box, and the live bars show every channel.
