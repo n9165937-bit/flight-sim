@@ -3157,25 +3157,36 @@ const RCF=[['thr','Throttle / collective','Move the THROTTLE stick from idle all
   ['ail','Aileron (roll)','Push the right stick to the RIGHT, then let it center.','dev'],
   ['ele','Elevator (pitch)','Pull the right stick BACK toward you (nose up), then let it center.','dev'],
   ['rud','Rudder (yaw)','Push the left stick to the RIGHT, then let it center.','dev'],
-  ['gear','Gear switch (optional)','Flip the switch you want for landing gear. Press Skip if none.','sw'],
+  ['brake','Airbrake / wheel-brake switch (optional)','Flip the switch you want for brakes (ACT/AUX on a DX4e) to ON. Press Skip if none.','sw'],
+  ['gear','Gear switch (optional)','Flip the switch you want for landing gear. Press Skip if none (on a DX4e, use the DX4e preset: gear follows the HI/LO rate switch).','sw'],
   ['flap','Flaps switch (optional)','Flip the switch you want for flaps (2 or 3 positions). Press Skip if none.','sw'],
   ['fire','Guns: trainer / bind button','Press and hold the TRAINER (bind) button on your radio, then press NEXT while still holding it — or press NEXT on its own to use any button.','btn'],
   ['msl','Missile switch (optional)','Flip the switch you want to fire a missile each time you flip it. Press Skip if none.','sw'],
   ['bomb','Bomb switch (optional)','Flip the switch you want to drop a bomb each time you flip it. Press Skip if none.','sw'],
   ['flr','Flares switch (optional)','Flip the switch you want to pop flares. Press Skip if none.','sw']];
-const RC_DEF={on:true,id:'',expo:.3,map:{thr:{a:2,inv:false},ail:{a:0,inv:false},ele:{a:1,inv:false},rud:{a:3,inv:false}}};
+// Spektrum DX4e (mode 2) through a WS dongle: channels come out in Spektrum order — 1 throttle, 2 aileron, 3 elevator, 4 rudder, 5 ACT/AUX.
+// The HI/LO rate switch isn't its own channel (it only cuts aileron/elevator/rudder travel to 70%), so gear watches for that: full stick = HI = gear down, 70% max = LO = gear up.
+const RC_DX4E={on:true,id:'',expo:.3,preset:'dx4e',map:{thr:{a:0,inv:false},ail:{a:1,inv:false},ele:{a:2,inv:false},rud:{a:3,inv:false},brake:{a:4,inv:false},gear:{rate:true,a:-1,inv:false},fire:{a:-1,inv:false}}};
+const RC_DEF=RC_DX4E;
 let RC=(()=>{try{const v=JSON.parse(lsGet('skyward_rc')||'null');return v&&v.map?v:JSON.parse(JSON.stringify(RC_DEF))}catch(e){return JSON.parse(JSON.stringify(RC_DEF))}})();
 const rcSave=()=>lsSet('skyward_rc',JSON.stringify(RC));
+if(!RC.map.brake)RC.map.brake={a:-1,inv:false};
 const rcLike=g=>!!g&&(/spektrum|ws[123]000|spm|horizon|rc ?sim|flysky|frsky|radiomaster|taranis|opentx|edgetx|jumper|dongle|wireless sim/i.test(g.id)||g.mapping!=='standard'&&g.axes.length>=4&&g.buttons.length<12);
 function rcPad(){const gps=navigator.getGamepads?[...navigator.getGamepads()].filter(Boolean):[];if(!gps.length)return null;return gps.find(g=>RC.id&&g.id===RC.id)||gps.find(rcLike)||null}
 const rcV=(g,m)=>{if(m&&m.b!=null&&m.b>=0){const bt=g.buttons[m.b];return bt?(bt.pressed||bt.value>.5?1:-1):null}if(!m||m.a==null||m.a<0||g.axes[m.a]==null)return null;const v=g.axes[m.a];return m.inv?-v:v};
 const rcExpo=v=>{const e=RC.expo||0,d=Math.abs(v)<.03?0:v;return d*(1-e)+d*d*d*e};
 const rcSt={};
+function rcGear(down){if(state!=='play'||P.crashed||!SP.retract)return;if((P.gear>.5)!==down&&!(P.onGround&&!down))toggleGear()}
 function rcInput(g,dt){const M=RC.map;
   const a=rcV(g,M.ail),e=rcV(g,M.ele),r=rcV(g,M.rud),t=rcV(g,M.thr);
   if(a!=null)IN.roll=rcExpo(a);if(e!=null)IN.pitch=rcExpo(e);if(r!=null)IN.yaw=rcExpo(r);if(t!=null)P.throttle=clamp((t+1)/2,0,1);
   const sw=k=>{const v=rcV(g,M[k]);return v==null?null:v};
-  const gr=sw('gear');if(gr!=null){const on=gr>0;if(rcSt.gear!=null&&on!==rcSt.gear&&SP.retract)toggleGear();rcSt.gear=on}
+  const bk=sw('brake');RC.brakeOn=bk!=null&&bk>.3;
+  if(M.gear&&M.gear.rate){const pk=Math.max(Math.abs(a||0),Math.abs(e||0),Math.abs(r||0)),now=performance.now();
+    if(pk>.86){if(rcSt.rate!=='hi'){rcSt.rate='hi';rcGear(true)}rcSt.plT=0}
+    else if(pk>.6&&pk<.79){if(Math.abs(pk-(rcSt.plV||0))<.012){if(!rcSt.plT)rcSt.plT=now;else if(now-rcSt.plT>350&&rcSt.rate!=='lo'){rcSt.rate='lo';rcGear(false)}}else{rcSt.plV=pk;rcSt.plT=0}}
+    else rcSt.plT=0}
+  const gr=M.gear&&M.gear.rate?null:sw('gear');if(gr!=null){const on=gr>0;if(rcSt.gear!=null&&on!==rcSt.gear&&SP.retract)toggleGear();rcSt.gear=on}
   const fl=sw('flap');if(fl!=null&&!SP.heli){const pos=fl<-.5?0:fl>.5?3:1;if(pos!==rcSt.flap&&rcSt.flap!=null){P.flaps=pos;beep(300,.08,'square',.06)}rcSt.flap=pos}
   const fi=sw('fire');RC.fireOn=fi!=null?fi>.3:[...g.buttons].some(b=>b&&(b.pressed||b.value>.5));
   for(const[k,fn]of[['msl',()=>GS.on?gsFire(105):dfMissileKey()],['bomb',dfBomb],['flr',dfFlares]]){const v=sw(k);if(v==null)continue;const on=v>.3;if(rcSt[k]!=null&&on!==rcSt[k])fn();rcSt[k]=on}}
@@ -3184,21 +3195,21 @@ addEventListener('gamepadconnected',e=>{const g=e.gamepad;if(rcLike(g)||g.id===R
 const RCW={step:-1,base:null,mx:null,first:null,last:null};
 function rcPanel(){const pn=$('rcp');if(pn.classList.contains('hidden'))return;const g=rcPad()||(navigator.getGamepads?[...navigator.getGamepads()].find(Boolean):null);
   if(!g){pn.innerHTML='<h4>RC TRANSMITTER</h4><p>No transmitter found yet. Plug in the WS3000T, turn on your transmitter (it should be bound — solid LED on the dongle), then <b>move a stick</b> so the browser can see it.</p><div class="row"><button class="rcbtn" id="rcclose">CLOSE</button></div>';$('rcclose').onclick=()=>pn.classList.add('hidden');return}
-  const bars=g.axes.map((v,i)=>{const used=Object.entries(RC.map).find(([k,m])=>m&&m.a===i);return`<div class="ax"><span>Axis ${i}</span><em><i style="left:${v<0?50+v*50:50}%;width:${Math.abs(v)*50}%"></i></em><span>${used?used[0].toUpperCase():''}</span></div>`}).join('');
+  const bars=g.axes.map((v,i)=>{const used=Object.entries(RC.map).find(([k,m])=>m&&m.a===i&&!m.rate);return`<div class="ax"><span>Axis ${i}</span><em><i style="left:${v<0?50+v*50:50}%;width:${Math.abs(v)*50}%"></i></em><span>${used?used[0].toUpperCase():''}</span></div>`}).join('');
   let wiz='';if(RCW.step>=0){const f=RCF[RCW.step];wiz=`<div class="wiz"><b>Step ${RCW.step+1} of ${RCF.length}: ${f[1]}</b><br>${f[2]}</div><div class="row"><button class="rcbtn" id="rcnext">NEXT</button>${f[3]==='sw'||f[3]==='btn'?'<button class="rcbtn" id="rcskip">SKIP</button>':''}<button class="rcbtn" id="rcstop">CANCEL</button></div>`}
-  const opt=(k)=>{const m=RC.map[k]||{a:-1};return`<select data-k="${k}"><option value="-1">${k==='fire'?'any button':'none'}</option>${g.axes.map((_,i)=>`<option value="${i}" ${m.a===i&&!(m.b>=0)?'selected':''}>Axis ${i}</option>`).join('')}${k==='fire'?g.buttons.map((_,i)=>`<option value="b${i}" ${m.b===i?'selected':''}>Button ${i}</option>`).join(''):''}</select><label style="font-size:12px"><input type="checkbox" data-inv="${k}" ${m.inv?'checked':''}> reverse</label>`};
+  const opt=(k)=>{const m=RC.map[k]||{a:-1};return`<select data-k="${k}"><option value="-1">${k==='fire'?'any button':'none'}</option>${k==='gear'?`<option value="rate" ${m.rate?'selected':''}>HI/LO rate switch</option>`:''}${g.axes.map((_,i)=>`<option value="${i}" ${m.a===i&&!(m.b>=0)?'selected':''}>Axis ${i}</option>`).join('')}${k==='fire'?g.buttons.map((_,i)=>`<option value="b${i}" ${m.b===i?'selected':''}>Button ${i}</option>`).join(''):''}</select><label style="font-size:12px"><input type="checkbox" data-inv="${k}" ${m.inv?'checked':''}> reverse</label>`};
   if(RCW.step>=0&&pn.dataset.mode==='wiz'){pn.querySelectorAll('.ax').forEach((el,i)=>{const v=g.axes[i];const b=el.querySelector('i');b.style.left=(v<0?50+v*50:50)+'%';b.style.width=Math.abs(v)*50+'%'});return}
   if(pn.dataset.mode==='map'&&RCW.step<0){pn.querySelectorAll('.ax').forEach((el,i)=>{const v=g.axes[i];const b=el.querySelector('i');if(b){b.style.left=(v<0?50+v*50:50)+'%';b.style.width=Math.abs(v)*50+'%'}});return}
   pn.dataset.mode=RCW.step>=0?'wiz':'map';
   pn.innerHTML=`<h4>RC TRANSMITTER</h4><div style="color:#a9cce4;font-size:12px;margin-bottom:6px">${g.id.slice(0,70)}</div>${wiz}${bars}`+(RCW.step<0?`
     <div class="row"><button class="rcbtn" id="rcwiz">RUN SETUP WIZARD</button><label><input type="checkbox" id="rcon" ${RC.on?'checked':''}> use transmitter</label><label>Expo <select id="rcexpo">${[0,.15,.3,.45,.6].map(x=>`<option value="${x}" ${Math.abs(RC.expo-x)<.01?'selected':''}>${Math.round(x*100)}%</option>`).join('')}</select></label></div>
     ${RCF.map(([k,n])=>`<div class="mp"><span>${n}</span>${opt(k)}</div>`).join('')}
-    <div class="row"><button class="rcbtn" id="rcreset">RESET</button><button class="rcbtn" id="rcclose">CLOSE</button></div>`:'');
+    <div class="row"><button class="rcbtn" id="rcdx4e">SPEKTRUM DX4e PRESET</button><button class="rcbtn" id="rcreset">RESET</button><button class="rcbtn" id="rcclose">CLOSE</button></div>`:'');
   const q=x=>pn.querySelector(x);
   if(RCW.step<0){q('#rcwiz').onclick=()=>{RC.id=g.id;rcStart(0)};q('#rcon').onchange=e=>{RC.on=e.target.checked;rcSave()};q('#rcexpo').onchange=e=>{RC.expo=+e.target.value;rcSave()};
-    pn.querySelectorAll('select[data-k]').forEach(el=>el.onchange=()=>{const k=el.dataset.k,v=el.value;RC.map[k]=Object.assign(RC.map[k]||{inv:false},v[0]==='b'?{b:+v.slice(1),a:-1}:{a:+v,b:-1});RC.id=g.id;rcSave();pn.dataset.mode='';rcPanel()});
+    pn.querySelectorAll('select[data-k]').forEach(el=>el.onchange=()=>{const k=el.dataset.k,v=el.value;RC.map[k]=Object.assign(RC.map[k]||{inv:false},v==='rate'?{rate:true,a:-1,b:-1}:v[0]==='b'?{b:+v.slice(1),a:-1,rate:false}:{a:+v,b:-1,rate:false});RC.id=g.id;rcSave();pn.dataset.mode='';rcPanel()});
     pn.querySelectorAll('input[data-inv]').forEach(el=>el.onchange=()=>{const k=el.dataset.inv;RC.map[k]=Object.assign(RC.map[k]||{a:-1},{inv:el.checked});rcSave()});
-    q('#rcreset').onclick=()=>{RC=JSON.parse(JSON.stringify(RC_DEF));rcSave();pn.dataset.mode='';rcPanel()};q('#rcclose').onclick=()=>pn.classList.add('hidden')}
+    q('#rcreset').onclick=()=>{RC=JSON.parse(JSON.stringify(RC_DEF));rcSave();pn.dataset.mode='';rcPanel()};q('#rcdx4e').onclick=()=>{RC=JSON.parse(JSON.stringify(RC_DX4E));RC.id=g.id;rcSave();pn.dataset.mode='';rcPanel();showMsg('DX4e PRESET','Left stick: throttle + yaw · right stick: pitch + roll · trainer: guns · ACT/AUX: brakes · HI/LO: gear','#7dffb0',4000)};q('#rcclose').onclick=()=>pn.classList.add('hidden')}
   else{q('#rcnext').onclick=rcNext;if(q('#rcskip'))q('#rcskip').onclick=()=>{RC.map[RCF[RCW.step][0]]={a:-1,inv:false};rcStart(RCW.step+1)};q('#rcstop').onclick=()=>{RCW.step=-1;pn.dataset.mode='';rcPanel()}}}
 function rcStart(i){const g=rcPad()||[...navigator.getGamepads()].find(Boolean);RCW.step=i;if(i>=RCF.length){RCW.step=-1;RC.on=true;rcSave();$('rcp').dataset.mode='';rcPanel();$('rcstat').textContent='Set up: '+g.id.slice(0,30);return}
   RCW.btn=-1;RCW.base=[...g.axes];RCW.mx=g.axes.map(()=>0);RCW.min=[...g.axes];RCW.max=[...g.axes];RCW.first=[...g.axes];$('rcp').dataset.mode='';rcPanel()}
@@ -3237,7 +3248,7 @@ function pollInput(dt){
     if(bv(3)&&!gpCamLatch)camMode=1-camMode;gpCamLatch=!!bv(3);
   }
   if(touch.on){IN.pitch=touch.p;IN.roll=touch.r}
-  P.brake=!!(keys.KeyX||(keys.Space&&mode!=='dogfight'&&mode!=='strike')||touch.brake||gpBrake);
+  P.brake=!!(keys.KeyX||(keys.Space&&mode!=='dogfight'&&mode!=='strike')||touch.brake||gpBrake||RC.brakeOn);
 }
 
 /* ---------------- audio ---------------- */
