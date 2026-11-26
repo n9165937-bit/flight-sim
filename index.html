@@ -238,7 +238,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
     <button class="mbtn" id="resume"><b>▶ Resume flight</b><span>Back to where you left off</span></button>
     <div class="sec">AIRCRAFT</div>
     <div class="planes" id="planes"></div>
-    <div class="opts"><label>Livery <select id="selLiv"></select></label><label id="ldrow">Weapons <select id="ld1"></select> + <select id="ld2"></select> <span id="ldsum" style="color:#a9cce4;font-size:13px"></span></label><button class="rcbtn" id="brc">RC TRANSMITTER</button><span id="rcstat"></span></div>
+    <div class="opts"><label>Livery <select id="selLiv"></select></label><label id="ldrow">Weapons <select id="ld1"></select> + <select id="ld2"></select> <span id="ldsum" style="color:#a9cce4;font-size:13px"></span></label><button class="rcbtn" id="brc">RC TRANSMITTER</button><span id="rcstat"></span><label class="devrow">Dev code <input id="devc" type="password" size="9" autocomplete="off"></label><button class="rcbtn" id="devb">ENTER</button><span id="devst"></span></div>
     <div id="rcp" class="hidden"></div>
     <div class="sec">CONDITIONS</div>
     <div class="opts">
@@ -2258,7 +2258,7 @@ function heliGround(dt,water,surf){
   else if(Math.abs(_E.z)>.38||Math.abs(_E.x)>.42)crash='Dynamic rollover — rotor strike';
   else if(slopeAt(P.pos.x,P.pos.z)>.3)crash='Slope too steep — rolled over';
   else if(hspd>(SP.skids?14:22))crash=(SP.skids?'Skids':'Wheels')+' caught at speed — flipped';
-  if(crash){doCrash(crash);return}
+  if(crash&&!DEV.on){doCrash(crash);return}
   if(!P.onGround){
     if(mode==='landing')landTouch(vs);
     else if(P.airTime>3&&landMsgCooldown<=0){const fpm=-vs*196.85,rw=onRunway(P.pos.x,P.pos.z);
@@ -2293,7 +2293,7 @@ function ground(dt){
   else if(slopeAt(P.pos.x,P.pos.z)>.22&&hspd>6)crash='Collided with terrain';
   else if(!onRunway(P.pos.x,P.pos.z)&&!nearAirport(P.pos.x,P.pos.z,1)&&hspd>32)crash='Rough field at high speed';
   if(crash&&onRoof&&!/Hard|Gear/.test(crash))crash=OCEAN.on?'Crashed on the flight deck':'Crashed onto a rooftop';
-  if(crash){doCrash(crash);return}
+  if(crash&&!DEV.on){doCrash(crash);return}
   const car=OCEAN.on&&onRoof?carrierAt(P.pos.x,P.pos.z):null,firstTouch=!P.onGround;
   if(car&&firstTouch&&!P.cat&&P.gearT>=.99&&P.airTime>1){const a=airports.find(q=>q.carrier===car),[lx,lz]=aptLocal(a,P.pos.x,P.pos.z),fromAft=a.len/2-lz;
     if(Math.abs(lx)<14&&fromAft>30&&fromAft<92){P.trap={wire:Math.min(4,1+Math.floor((fromAft-30)/14))};beep(140,.35,'sawtooth',.2);showMsg('TRAP! '+P.trap.wire+'-WIRE',P.trap.wire===3?'Perfect — the target wire':'Caught the '+P.trap.wire+'-wire','#7dffb0',3500)}
@@ -2367,7 +2367,7 @@ function updateGunship(dt){if(!GS.shells.length&&!GS.on)return;
 /* ---------------- fuel, tanker and air-to-air refueling ---------------- */
 const FUEL={f:1,on:false,out:false,bingo:false};
 function fuelBurn(dt){if(!FUEL.on||TK.contact)return;const ab=SP.ab?clamp((P.spool-.6)/.4,0,1):0;
-  const r=SP.heli?.0007+P.throttle*.0011:SP.jet?.0005+P.spool*.0017+ab*.0055:.0004+P.spool*.0009;FUEL.f=Math.max(0,FUEL.f-r*dt);
+  const r=SP.heli?.0007+P.throttle*.0011:SP.jet?.0005+P.spool*.0017+ab*.0055:.0004+P.spool*.0009;FUEL.f=DEV.on?1:Math.max(0,FUEL.f-r*dt);
   if(FUEL.f<=0&&!FUEL.out){FUEL.out=true;showMsg('FLAMEOUT','Out of fuel — glide to a runway'+(TK.on&&!SP.heli?' or the tanker':''),'#ff5a3a',4000)}else if(FUEL.f>0)FUEL.out=false;
   if(FUEL.f<.15&&!FUEL.bingo){FUEL.bingo=true;showMsg('BINGO FUEL',TK.on&&SP.jet&&!SP.heli?'Find the tanker (blue marker) or land to refuel':'Land on a runway or pad to refuel','#ffd23a',3500);beep(600,.25,'square',.08)}else if(FUEL.f>.2)FUEL.bingo=false}
 const TK={on:false,g:null,boom:null,tube:null,s:0,pos:new V3(),f:new V3(0,0,1),q:new Q(),v:125,alt:2400,bank:0,contact:false,cool:0,cx:0,cz:0,L:6000,R:2200,t0:0,done:false,piv:new V3(),tip:new V3()};
@@ -2416,7 +2416,7 @@ function tkHUD(){const e=$('tkhud');if(!TK.on||!FUEL.on||SP.heli||P.crashed){e.c
 
 /* ---------------- crash fx ---------------- */
 const parts=[];const pg=new THREE.BoxGeometry(1,1,1);
-function doCrash(reason){gsOff();
+function doCrash(reason){if(DEV.on){const g=Math.max(groundAt(P.pos.x,P.pos.z),0);P.pos.y=Math.max(P.pos.y,g)+30;P.vel.y=Math.abs(P.vel.y)*.4+6;if(!DEV.msgT||performance.now()-DEV.msgT>2000){DEV.msgT=performance.now();showMsg('DEV: NO CRASH',reason,'#ffcf3a',1200)}return}gsOff();
   P.crashed=true;P.vel.set(0,0,0);P.w.set(0,0,0);P.throttle=0;P.spool=0;
   const gh=Math.max(groundAt(P.pos.x,P.pos.z),0);P.pos.y=gh+.6;
   _E.setFromQuaternion(P.q,'YXZ');_E.x=-.35;_E.z=.6;P.q.setFromEuler(_E);
@@ -2737,7 +2737,7 @@ function dfRearm(){const w=dfW(SP.id);DF.rearmed=true;DF.rearm=0;DF.hp=100;dfArm
 function dfFeed(t){DF.feed.unshift({t,ttl:6});DF.feed.length=Math.min(DF.feed.length,5)}
 const _hq=new THREE.Quaternion(),_tmp3=new THREE.Vector3();
 function toLocal(pt,pos,q){return pt.clone().sub(pos).applyQuaternion(_hq.copy(q).invert())}
-function dfDamage(dmg,from,lp){if(!DF.on||P.crashed)return;DF.hp-=dmg;DF.hitFx=1;beep(160,.05,'square',.06);
+function dfDamage(dmg,from,lp){if(!DF.on||P.crashed)return;if(DEV.on){DF.hitFx=.4;return}DF.hp-=dmg;DF.hitFx=1;beep(160,.05,'square',.06);
   if(lp&&plane.box){if(!P.dmg)P.dmg=newDmg();const br=partDamage(P.dmg,lp,dmg,plane.box,!!SP.jet);
     if(br){detachPart(plane,br,P.vel);beep(70,.6,'sawtooth',.25);showMsg(PART_NAME[br]+(br==='engine'?' ON FIRE':' GONE'),br==='engine'?'Engine out — most of your thrust is lost':br==='tail'?'No tail — pitch and yaw are going wild':'The jet will roll toward the missing wing — fight it with the stick','#ff5a3a',3000);DF.lostMask=(DF.lostMask||0)|({wingL:1,wingR:2,tail:4,engine:8}[br])}}
   if(DF.hp<=0){DF.hp=0;dfDie('Shot down by '+from,from)}}
@@ -2800,14 +2800,23 @@ const _mfG=new THREE.ConeGeometry(.22,2.2,10,1,true);_mfG.rotateX(-Math.PI/2);_m
 function dfFireMissile(fromPos,fromVel,dir,target,owner,enemy,wid='aim9'){const W=WPN[wid]||WPN.aim9,m=wpnModel(wid);m.position.copy(fromPos);
   const fl=new THREE.Mesh(_mfG,new THREE.MeshBasicMaterial({color:0xffc070,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));fl.position.z=-m.userData.L/2;fl.name='flame';m.add(fl);scene.add(m);
   DF.msl.push({m,p:fromPos.clone(),v:fromVel.clone().addScaledVector(dir,30),tgt:target,life:W.life,w:W,owner,enemy,sm:0,snd:sfxLoop()});sfx('launch',fromPos)}
-function dfFlares(){if(!DF.on||P.crashed||DF.flrN<=0)return;DF.flrN--;sfx('flare',P.pos);
+function dfFlares(){if(!DF.on||P.crashed||DF.flrN<=0)return;if(!DEV.on)DF.flrN--;sfx('flare',P.pos);
   for(let i=0;i<3;i++){const m=new THREE.Mesh(smGeo,new THREE.MeshBasicMaterial({color:0xfff2b0,fog:false}));m.scale.setScalar(.8);m.position.copy(P.pos);scene.add(m);
     const f={m,p:P.pos.clone(),v:P.vel.clone().multiplyScalar(.6).add(new V3((Math.random()-.5)*30,-12-Math.random()*10,(Math.random()-.5)*30)),life:4};DF.flr.push(f)}
   for(const ms of DF.msl)if(ms.tgt==='me'&&Math.random()<(ms.w?ms.w.flare:.7))ms.tgt={flare:DF.flr[DF.flr.length-1]}}
 // ---- ammo by type (from the loadout), weapon selection ----
 function dfAmmoSync(){let m=0,b=0;for(const k in DF.ammo)if(WPN[k])(WPN[k].k==='bomb'?b+=DF.ammo[k]:m+=DF.ammo[k]);DF.mslN=m;DF.bmbN=b}
 function dfNextOf(cat,cur,first){const ks=Object.keys(WPN).filter(k=>(cat==='b')===(WPN[k].k==='bomb')&&DF.ammo[k]>0);if(!ks.length)return null;if(first&&cur==null)return ks[0];const i=ks.indexOf(cur);return ks[(i+1)%ks.length]}
-function dfArm(){DF.ammo={};if(LOADCFG[SP.id])Object.assign(DF.ammo,loadGet(SP.id));else{const w=MILW0[SP.id];if(w&&w.msl)DF.ammo.aim9=w.msl;if(w&&w.bmb)DF.ammo.mk82=w.bmb}dfAmmoSync();
+// ---- Dev mode: code unlocks invincibility + unlimited missiles/bombs of every type (you can still kill). Toggle off with the same button.
+const DEV={on:false,code:'MAVERICK'};
+function devAll(){DF.ammo={};for(const k in WPN)DF.ammo[k]=99;dfAmmoSync()}
+function devSet(on){DEV.on=on;document.body.classList.toggle('dev',on);const b=$('devb'),st=$('devst');if(b)b.textContent=on?'DEV OFF':'ENTER';if(st){st.textContent=on?'DEV MODE ON — invincible · unlimited weapons':'';st.style.color='#ffcf3a'}
+  if(typeof DF!=='undefined'&&DF.on&&!P.crashed){if(on){DF.hp=100;devAll()}else{dfArm();armVisual(DF.ammo)}if(DF.selM&&!(DF.ammo[DF.selM]>0))DF.selM=dfNextOf('m',null,true);if(!DF.selB||!(DF.ammo[DF.selB]>0))DF.selB=dfNextOf('b',null,true)}
+  showMsg(on?'DEV MODE ON':'DEV MODE OFF',on?'Invincible · unlimited missiles & bombs (1/2 to pick any type)':'Normal rules',on?'#ffcf3a':'#cfe6f7',2500)}
+function devUI(){const b=$('devb'),c=$('devc');if(!b)return;const go=()=>{if(DEV.on){devSet(false);return}if(c.value.trim().toUpperCase()===DEV.code){c.value='';devSet(true)}else{c.value='';$('devst').textContent='Wrong code';$('devst').style.color='#ff6a6a'}};
+  b.onclick=go;c.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')go()};c.onkeyup=e=>e.stopPropagation()}
+setTimeout(devUI,0);
+function dfArm(){if(DEV.on){devAll();DF.selM=dfNextOf('m',null,true);DF.selB=dfNextOf('b',null,true);return}DF.ammo={};if(LOADCFG[SP.id])Object.assign(DF.ammo,loadGet(SP.id));else{const w=MILW0[SP.id];if(w&&w.msl)DF.ammo.aim9=w.msl;if(w&&w.bmb)DF.ammo.mk82=w.bmb}dfAmmoSync();
   const ag=Object.keys(DF.ammo).find(k=>WPN[k]&&WPN[k].k==='ag'&&DF.ammo[k]>0);DF.selM=DF.strike&&ag?ag:dfNextOf('m',null,true);DF.selB=dfNextOf('b',null,true);
   DF.lockPref=DF.strike&&!ag&&DF.selB?'bmb':'msl';armVisual(DF.ammo)}
 function dfSelect(cat){if(!DF.on)return;if(cat==='m'){const n=dfNextOf('m',DF.selM);if(!n){showMsg('NO MISSILES','Nothing left to select','#cfe6f7',900);return}DF.selM=n;DF.lockPref='msl';showMsg(WPN[n].sh,DF.ammo[n]+' left · '+(WPN[n].k==='ag'?'locks ground targets':'locks aircraft'),'#ffd27a',1100)}
@@ -2825,9 +2834,9 @@ function dfWpnHUD(){const part=cat=>Object.keys(WPN).filter(k=>(cat==='b')===(WP
   const m=part('m'),b=part('b');return(m?' · '+m:'')+(b?' · '+b:'')}
 function dfMissileKey(){if(!DF.on||P.crashed)return;if(!DF.selM||!(DF.ammo[DF.selM]>0))DF.selM=dfNextOf('m',null,true);
   if(!DF.selM){showMsg('NO MISSILES',dfW(SP.id).msl?'Out of missiles':'This aircraft only has guns','#cfe6f7',1200);return}
-  if(DF.mslCD>0)return;const id=DF.selM,WW=WPN[id];axes();DF.ammo[id]--;dfAmmoSync();DF.mslCD=.45;DF.lockPref='msl';
+  if(DF.mslCD>0)return;const id=DF.selM,WW=WPN[id];axes();if(!DEV.on)DF.ammo[id]--;dfAmmoSync();DF.mslCD=.45;DF.lockPref='msl';
   const t=DF.locked&&DF.lock>=1&&(WW.k==='ag'?!!DF.locked.gnd:!DF.locked.gnd)?DF.locked:null;
-  const mp=P.pos.clone().addScaledVector(_u,-1.2);dfFireMissile(mp,P.vel,_f,t,'me',false,id);armUse(id);if(!(DF.ammo[id]>0)){const nx=dfNextOf('m',id,true);if(nx)DF.selM=nx}if(t&&t.isPlayer){DF.msl[DF.msl.length-1].visual=true;if(window.MP)MP.send({t:'msl',to:t.id,p:[mp.x,mp.y,mp.z],v:[P.vel.x,P.vel.y,P.vel.z],d:[_f.x,_f.y,_f.z]})}if(!t)showMsg('NO LOCK',WW.sh+' fired unguided','#ffd27a',1000)}
+  const mp=P.pos.clone().addScaledVector(_u,-1.2);dfFireMissile(mp,P.vel,_f,t,'me',false,id);if(!DEV.on)armUse(id);if(!(DF.ammo[id]>0)){const nx=dfNextOf('m',id,true);if(nx)DF.selM=nx}if(t&&t.isPlayer){DF.msl[DF.msl.length-1].visual=true;if(window.MP)MP.send({t:'msl',to:t.id,p:[mp.x,mp.y,mp.z],v:[P.vel.x,P.vel.y,P.vel.z],d:[_f.x,_f.y,_f.z]})}if(!t)showMsg('NO LOCK',WW.sh+' fired unguided','#ffd27a',1000)}
 function dfAngle(a,b){return Math.acos(clamp(a.dot(b),-1,1))}
 // who a bot goes after: enemies pick the nearest of you and your wingmen; wingmen pick the nearest enemy (or a ground target in Strike)
 function botTarget(b){let best=null,bd=1e9;
@@ -3030,9 +3039,9 @@ function updateStrike(dt){if(!ST.on)return;const now=performance.now()/1000;
 // ---- bombs: B to drop. Laser-guided if you hold a lock on a ground target (F-15E / A-10 / F-16 / F/A-18) ----
 function dfBomb(){if(!DF.on||P.crashed)return;if(DF.bmbN<=0){showMsg('NO BOMBS',dfW(SP.id).bmb?'Out of bombs':'This aircraft has no bombs','#cfe6f7',1200);return}if(DF.bmbCD>0)return;
   if(!DF.selB||!(DF.ammo[DF.selB]>0))DF.selB=dfNextOf('b',null,true);if(!DF.selB)return;const id=DF.selB,WW=WPN[id];
-  DF.ammo[id]--;dfAmmoSync();DF.bmbCD=.35;axes();const m=wpnModel(id);const wg=m.getObjectByName('wings');if(wg)wg.scale.set(.35,.35,1);const p=P.pos.clone().addScaledVector(_u,-1.6);m.position.copy(p);scene.add(m);
+  if(!DEV.on)DF.ammo[id]--;dfAmmoSync();DF.bmbCD=.35;axes();const m=wpnModel(id);const wg=m.getObjectByName('wings');if(wg)wg.scale.set(.35,.35,1);const p=P.pos.clone().addScaledVector(_u,-1.6);m.position.copy(p);scene.add(m);
   const lk=DF.locked&&DF.locked.gnd&&DF.lock>=1?DF.locked:null;let tgt=null;if(WW.guide==='laser')tgt=lk;else if(WW.guide==='gps'){if(lk)tgt=lk;else{const ip=ccip();if(ip)tgt={pos:ip,vel:new V3(),alive:true,gps:1,name:'GPS point'}}}
-  DF.bombs.push({m,p,v:P.vel.clone().addScaledVector(_u,-3),tgt,life:40,w:WW,age:0});armUse(id);beep(300,.15,'triangle',.08);
+  DF.bombs.push({m,p,v:P.vel.clone().addScaledVector(_u,-3),tgt,life:40,w:WW,age:0});if(!DEV.on)armUse(id);beep(300,.15,'triangle',.08);
   if(tgt)showMsg(WW.sh+' AWAY',(WW.guide==='laser'?'Laser-guided on ':'GPS-guided on ')+tgt.name,'#ffd27a',1200);else if(WW.guide==='laser')showMsg(WW.sh+' AWAY','No lock — falling unguided','#ffd27a',1000);
   if(!(DF.ammo[id]>0)){const nx=dfNextOf('b',id,true);if(nx)DF.selB=nx}}
 const bombGeo=new THREE.CylinderGeometry(.2,.2,2.2,10);bombGeo.rotateX(Math.PI/2);

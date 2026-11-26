@@ -108,6 +108,9 @@ Combat: Space guns · M missile · B bomb · F flares · 1 switch missile · 2 s
 - **P-40 Warhawk**: WWII shark-mouth fighter with six .50 cals and one 500 lb bomb; flies Dogfight and Strike.
 - **F-14 Tomcat**: twin-tail Navy fighter with swing wings that sweep back as you speed up; Sidewinders, AMRAAMs and GBU-12s, and it launches and traps on the carriers.
 
+## Dev mode
+Type **MAVERICK** in the **Dev code** box on the menu and press ENTER. You become invincible (no damage, no crashes, fuel stays full) but you can still shoot others down, and you get unlimited missiles, bombs and flares of every type: press 1/2 to pick any one. Press **DEV OFF** to go back to normal.
+
 ## RC transmitter (Spektrum WS1000 / WS2000 / WS3000T dongle)
 Fly with your real RC radio. The Spektrum wireless simulator dongle shows up as a USB joystick, which the browser can read (Chrome or Edge on PC/Mac, Chrome on Android).
 1. Bind your DSMX/DSM2 transmitter to the dongle (hold the bind button while plugging it in, then put the radio in bind mode).
