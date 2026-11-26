@@ -238,7 +238,7 @@ body.touch #result{max-height:88vh;overflow:auto;padding:12px 16px}body.touch #r
     <button class="mbtn" id="resume"><b>▶ Resume flight</b><span>Back to where you left off</span></button>
     <div class="sec">AIRCRAFT</div>
     <div class="planes" id="planes"></div>
-    <div class="opts"><label>Livery <select id="selLiv"></select></label><label id="ldrow">Weapons <select id="ld1"></select> + <select id="ld2"></select> <span id="ldsum" style="color:#a9cce4;font-size:13px"></span></label><button class="rcbtn" id="brc">RC TRANSMITTER</button><span id="rcstat"></span><label class="devrow">Dev code <input id="devc" type="password" size="9" autocomplete="off"></label><button class="rcbtn" id="devb">ENTER</button><span id="devst"></span></div>
+    <div class="opts"><label>Livery <select id="selLiv"></select></label><label id="ldrow">Weapons <select id="ld1"></select> + <select id="ld2"></select> <span id="ldsum" style="color:#a9cce4;font-size:13px"></span></label><button class="rcbtn" id="brc">RC TRANSMITTER</button><span id="rcstat"></span><label class="devrow">Dev code <input id="devc" type="password" inputmode="numeric" size="9" autocomplete="off"></label><button class="rcbtn" id="devb">ENTER</button><span id="devst"></span></div>
     <div id="rcp" class="hidden"></div>
     <div class="sec">CONDITIONS</div>
     <div class="opts">
@@ -2808,7 +2808,7 @@ function dfFlares(){if(!DF.on||P.crashed||DF.flrN<=0)return;if(!DEV.on)DF.flrN--
 function dfAmmoSync(){let m=0,b=0;for(const k in DF.ammo)if(WPN[k])(WPN[k].k==='bomb'?b+=DF.ammo[k]:m+=DF.ammo[k]);DF.mslN=m;DF.bmbN=b}
 function dfNextOf(cat,cur,first){const ks=Object.keys(WPN).filter(k=>(cat==='b')===(WPN[k].k==='bomb')&&DF.ammo[k]>0);if(!ks.length)return null;if(first&&cur==null)return ks[0];const i=ks.indexOf(cur);return ks[(i+1)%ks.length]}
 // ---- Dev mode: code unlocks invincibility + unlimited missiles/bombs of every type (you can still kill). Toggle off with the same button.
-const DEV={on:false,code:'MAVERICK'};
+const DEV={on:false,code:'2711'};
 function devAll(){DF.ammo={};for(const k in WPN)DF.ammo[k]=99;dfAmmoSync()}
 function devSet(on){DEV.on=on;document.body.classList.toggle('dev',on);const b=$('devb'),st=$('devst');if(b)b.textContent=on?'DEV OFF':'ENTER';if(st){st.textContent=on?'DEV MODE ON — invincible · unlimited weapons':'';st.style.color='#ffcf3a'}
   if(typeof DF!=='undefined'&&DF.on&&!P.crashed){if(on){DF.hp=100;devAll()}else{dfArm();armVisual(DF.ammo)}if(DF.selM&&!(DF.ammo[DF.selM]>0))DF.selM=dfNextOf('m',null,true);if(!DF.selB||!(DF.ammo[DF.selB]>0))DF.selB=dfNextOf('b',null,true)}
